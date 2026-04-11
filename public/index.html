@@ -2357,20 +2357,14 @@
   </script>
 
 
-<!-- SPOTIFY PLAYER BAR -->
+<!-- SPOTIFY WEB PLAYBACK SDK PLAYER -->
 
-  <!-- Spotify iframe: 1x1px visibile così postMessage funziona -->
-  <iframe id="spotifyFrame"
-    src="https://open.spotify.com/embed/playlist/3wVFkxZqgYqT43wqaYdsCB?utm_source=generator&theme=0&autoplay=1"
-    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-    style="position:fixed;bottom:56px;left:0;width:1px;height:1px;opacity:0;pointer-events:none;border:none;">
-  </iframe>
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
 
-  <!-- Custom player UI -->
   <div class="player-bar" id="playerBar">
     <div class="player-inner">
 
-      <!-- LEFT: EQ + cover thumb + track name -->
+      <!-- LEFT: EQ + cover + track name -->
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
         <div class="player-eq" id="playerEq"><span></span><span></span><span></span></div>
         <div id="playerCoverThumb" style="width:32px;height:32px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
@@ -2381,27 +2375,28 @@
 
       <!-- CENTER: controls -->
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <button class="player-ctrl" onclick="spCmd('previous')" title="Precedente" aria-label="Precedente">
+        <button class="player-ctrl" id="btnPrev" onclick="spPrev()" title="Precedente">
           <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
         </button>
-        <button class="player-ctrl player-ctrl--play" id="btnPlay" onclick="spToggle()" title="Play/Pausa" aria-label="Play/Pausa">
+        <button class="player-ctrl player-ctrl--play" id="btnPlay" onclick="spToggle()" title="Play/Pausa">
           <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
-        <button class="player-ctrl" onclick="spCmd('next')" title="Successivo" aria-label="Successivo">
+        <button class="player-ctrl" id="btnNext" onclick="spNext()" title="Successivo">
           <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
         </button>
       </div>
 
-      <!-- RIGHT: volume + info -->
+      <!-- RIGHT: volume + info + connect -->
       <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px">
-        <button class="player-ctrl" id="btnVol" onclick="spMute()" title="Volume" aria-label="Volume">
+        <button class="player-ctrl" id="btnVol" onclick="spMute()" title="Muto">
           <svg id="iconVolOn" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
           <svg id="iconVolOff" viewBox="0 0 24 24" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>
         </button>
-        <input type="range" class="player-vol-slider" id="volSlider" min="0" max="100" value="70" oninput="spVolume(this.value)"/>
+        <input type="range" class="player-vol-slider" id="volSlider" min="0" max="100" value="80" oninput="spSetVol(this.value)"/>
+        <!-- Info hover panel -->
         <div class="player-info-wrapper" style="position:relative">
-          <button class="player-ctrl" id="btnInfo" title="Info brano" aria-label="Info brano">
+          <button class="player-ctrl" id="btnInfo" title="Info brano">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
           </button>
           <div class="player-info-panel" id="infoPanel">
@@ -2409,95 +2404,208 @@
               <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
             </div>
             <div class="player-info-meta">
-              <div class="player-info-title" id="infoTitle">Kinky People</div>
-              <div class="player-info-row">Playlist: <span>Kinky People Official</span></div>
-              <div class="player-info-row">Su: <span><a href="https://open.spotify.com/playlist/3wVFkxZqgYqT43wqaYdsCB" target="_blank" style="color:var(--gold)">Spotify ↗</a></span></div>
+              <div class="player-info-title" id="infoTitle">—</div>
+              <div class="player-info-row">Artista: <span id="infoArtist">—</span></div>
+              <div class="player-info-row">Album: <span id="infoAlbum">—</span></div>
+              <div class="player-info-row"><a href="https://open.spotify.com/playlist/3wVFkxZqgYqT43wqaYdsCB" target="_blank" style="color:var(--gold)">Apri su Spotify ↗</a></div>
             </div>
           </div>
         </div>
+        <!-- Connect button (shown when not logged in) -->
+        <a id="btnConnect" href="#" onclick="spLogin();return false;"
+          style="display:none;font-family:var(--font-display);font-size:.75rem;letter-spacing:2px;padding:6px 14px;border-radius:4px;background:var(--gold);color:#111;white-space:nowrap;text-decoration:none;">
+          ▶ CONNETTI
+        </a>
       </div>
 
     </div>
   </div>
 
   <script>
-  var spPlaying = false;
-  var spMuted   = false;
+  /* ══════════════════════════════════════════════
+     SPOTIFY WEB PLAYBACK SDK
+     Client ID: 7bb528c598134e9bb8cd685738549799
+     Playlist:  3wVFkxZqgYqT43wqaYdsCB
+  ══════════════════════════════════════════════ */
+  var SP_CLIENT_ID  = '7bb528c598134e9bb8cd685738549799';
+  var SP_PLAYLIST   = 'spotify:playlist:3wVFkxZqgYqT43wqaYdsCB';
+  var SP_REDIRECT   = 'https://kinkypeople.it/';
+  var SP_SCOPES     = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
 
-  function getFrame() { return document.getElementById('spotifyFrame'); }
+  var spPlayer  = null;
+  var spDeviceId = null;
+  var spPlaying  = false;
+  var spMuted_   = false;
+  var spToken    = null;
 
-  function spSend(method, args) {
-    var f = getFrame();
-    if (!f || !f.contentWindow) return;
-    f.contentWindow.postMessage(JSON.stringify({ method: method, args: args || [] }), '*');
+  /* ── Token management ── */
+  function spGetToken() {
+    // Check URL hash for token after redirect
+    var hash = window.location.hash;
+    if (hash) {
+      var params = {};
+      hash.substring(1).split('&').forEach(function(p){
+        var kv = p.split('='); params[kv[0]] = decodeURIComponent(kv[1]||'');
+      });
+      if (params.access_token) {
+        spToken = params.access_token;
+        // Store with expiry
+        var exp = Date.now() + (parseInt(params.expires_in||3600) * 1000);
+        localStorage.setItem('sp_token', spToken);
+        localStorage.setItem('sp_token_exp', exp);
+        // Clean URL
+        history.replaceState(null, '', SP_REDIRECT);
+        return spToken;
+      }
+    }
+    // Check localStorage
+    var stored = localStorage.getItem('sp_token');
+    var exp    = parseInt(localStorage.getItem('sp_token_exp') || 0);
+    if (stored && Date.now() < exp) { spToken = stored; return stored; }
+    return null;
   }
 
+  function spLogin() {
+    var url = 'https://accounts.spotify.com/authorize'
+      + '?client_id=' + SP_CLIENT_ID
+      + '&response_type=token'
+      + '&redirect_uri=' + encodeURIComponent(SP_REDIRECT)
+      + '&scope=' + encodeURIComponent(SP_SCOPES)
+      + '&show_dialog=false';
+    window.location.href = url;
+  }
+
+  /* ── UI helpers ── */
+  function spSetPlaying(playing) {
+    spPlaying = playing;
+    document.getElementById('iconPlay').style.display  = playing ? 'none' : '';
+    document.getElementById('iconPause').style.display = playing ? '' : 'none';
+    document.getElementById('playerEq').classList.toggle('active', playing);
+  }
+
+  function spUpdateTrack(state) {
+    if (!state || !state.track_window) return;
+    var t = state.track_window.current_track;
+    if (!t) return;
+    var artist = t.artists.map(function(a){ return a.name; }).join(', ');
+    document.getElementById('playerTrack').innerHTML = '<strong>' + artist + ' — ' + t.name + '</strong>';
+    document.getElementById('infoTitle').textContent  = t.name;
+    document.getElementById('infoArtist').textContent = artist;
+    document.getElementById('infoAlbum').textContent  = t.album.name;
+    if (t.album.images && t.album.images[0]) {
+      var url = t.album.images[0].url;
+      document.getElementById('playerCoverThumb').innerHTML = '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover"/>';
+      document.getElementById('infoCover').innerHTML = '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover"/>';
+    }
+  }
+
+  /* ── Player controls ── */
   function spToggle() {
-    spSend(spPlaying ? 'pause' : 'resume');
-    spPlaying = !spPlaying;
-    document.getElementById('iconPlay').style.display  = spPlaying ? 'none' : '';
-    document.getElementById('iconPause').style.display = spPlaying ? '' : 'none';
-    document.getElementById('playerEq').classList.toggle('active', spPlaying);
+    if (!spPlayer) { spLogin(); return; }
+    spPlayer.togglePlay();
   }
 
-  function spCmd(cmd) {
-    if (cmd === 'next')     spSend('next');
-    if (cmd === 'previous') spSend('previous');
+  function spNext() {
+    if (!spPlayer) return;
+    spPlayer.nextTrack();
   }
 
-  function spVolume(v) {
-    spSend('setVolume', [v / 100]);
-    spMuted = (v == 0);
-    document.getElementById('iconVolOn').style.display  = spMuted ? 'none' : '';
-    document.getElementById('iconVolOff').style.display = spMuted ? '' : 'none';
+  function spPrev() {
+    if (!spPlayer) return;
+    spPlayer.previousTrack();
+  }
+
+  function spSetVol(v) {
+    if (spPlayer) spPlayer.setVolume(v / 100);
+    spMuted_ = (v == 0);
+    document.getElementById('iconVolOn').style.display  = spMuted_ ? 'none' : '';
+    document.getElementById('iconVolOff').style.display = spMuted_ ? '' : 'none';
   }
 
   function spMute() {
-    spMuted = !spMuted;
-    var vol = spMuted ? 0 : parseInt(document.getElementById('volSlider').value);
-    if (!spMuted && vol === 0) vol = 70;
-    spSend('setVolume', [vol / 100]);
-    document.getElementById('volSlider').value = spMuted ? 0 : vol;
-    document.getElementById('iconVolOn').style.display  = spMuted ? 'none' : '';
-    document.getElementById('iconVolOff').style.display = spMuted ? '' : 'none';
+    spMuted_ = !spMuted_;
+    var vol = spMuted_ ? 0 : 80;
+    if (spPlayer) spPlayer.setVolume(vol / 100);
+    document.getElementById('volSlider').value = vol;
+    document.getElementById('iconVolOn').style.display  = spMuted_ ? 'none' : '';
+    document.getElementById('iconVolOff').style.display = spMuted_ ? '' : 'none';
   }
 
-  // Receive track info from Spotify iframe
-  window.addEventListener('message', function(e) {
-    try {
-      var d = JSON.parse(e.data);
-      if (d.type === 'playback_update' || d.type === 'player_state_changed') {
-        var payload = d.payload || d;
-        var playing = payload.isPaused === false || payload.is_playing === true;
-        spPlaying = playing;
-        document.getElementById('iconPlay').style.display  = playing ? 'none' : '';
-        document.getElementById('iconPause').style.display = playing ? '' : 'none';
-        document.getElementById('playerEq').classList.toggle('active', playing);
-        var track = (payload.track) || (payload.item);
-        if (track && track.name) {
-          var artist = (track.artists && track.artists[0]) ? track.artists[0].name : 'Kinky People';
-          document.getElementById('playerTrack').innerHTML = '<strong>' + artist + ' — ' + track.name + '</strong>';
-          document.getElementById('infoTitle').textContent = track.name;
-          var img = track.album && track.album.images && track.album.images[0];
-          if (img) {
-            document.getElementById('infoCover').innerHTML = '<img src="'+img.url+'" alt="cover" style="width:100%;height:100%;object-fit:cover"/>';
-            document.getElementById('playerCoverThumb').innerHTML = '<img src="'+img.url+'" alt="cover" style="width:100%;height:100%;object-fit:cover"/>';
-          }
-        }
-      }
-    } catch(e) {}
-  });
+  /* ── Info panel hover ── */
+  (function(){
+    function init() {
+      var w = document.querySelector('.player-info-wrapper');
+      if (!w) return;
+      w.addEventListener('mouseenter', function(){
+        document.getElementById('infoPanel').classList.add('open');
+        document.getElementById('btnInfo').style.color = 'var(--gold)';
+      });
+      w.addEventListener('mouseleave', function(){
+        document.getElementById('infoPanel').classList.remove('open');
+        document.getElementById('btnInfo').style.color = '';
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
 
-  // Auto-start on first interaction
-  document.addEventListener('click', function() {
-    setTimeout(function() {
-      spSend('resume');
-      spPlaying = true;
-      document.getElementById('iconPlay').style.display  = 'none';
-      document.getElementById('iconPause').style.display = '';
-      document.getElementById('playerEq').classList.add('active');
-    }, 600);
-  }, { once: true });
+  /* ── SDK Init ── */
+  window.onSpotifyWebPlaybackSDKReady = function() {
+    var token = spGetToken();
+
+    if (!token) {
+      // Show connect button
+      document.getElementById('btnConnect').style.display = 'flex';
+      document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">CONNETTI SPOTIFY PER ASCOLTARE</span>';
+      return;
+    }
+
+    spPlayer = new Spotify.Player({
+      name: 'Kinky People — Official Site',
+      getOAuthToken: function(cb) { cb(token); },
+      volume: 0.8
+    });
+
+    spPlayer.addListener('ready', function(ref) {
+      spDeviceId = ref.device_id;
+      // Start playlist
+      fetch('https://api.spotify.com/v1/me/player/play?device_id=' + spDeviceId, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ context_uri: SP_PLAYLIST, offset: { position: 0 } })
+      });
+    });
+
+    spPlayer.addListener('player_state_changed', function(state) {
+      if (!state) return;
+      spSetPlaying(!state.paused);
+      spUpdateTrack(state);
+    });
+
+    spPlayer.addListener('not_ready', function(ref) {
+      console.warn('[SP] Device offline:', ref.device_id);
+    });
+
+    spPlayer.addListener('initialization_error', function(e) { console.error('[SP] Init:', e.message); });
+    spPlayer.addListener('authentication_error', function(e) {
+      console.error('[SP] Auth:', e.message);
+      localStorage.removeItem('sp_token');
+      localStorage.removeItem('sp_token_exp');
+      document.getElementById('btnConnect').style.display = 'flex';
+    });
+    spPlayer.addListener('account_error', function(e) {
+      console.error('[SP] Account (Premium required):', e.message);
+      document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">SPOTIFY PREMIUM RICHIESTO</span>';
+    });
+
+    spPlayer.connect();
+  };
+
+  // Trigger SDK check
+  spGetToken();
   </script>
 
 </body>
