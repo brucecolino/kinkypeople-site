@@ -2440,39 +2440,70 @@
 
   /* ── Token management ── */
   function spGetToken() {
-    // Check URL hash for token after redirect
-    var hash = window.location.hash;
-    if (hash) {
-      var params = {};
-      hash.substring(1).split('&').forEach(function(p){
-        var kv = p.split('='); params[kv[0]] = decodeURIComponent(kv[1]||'');
-      });
-      if (params.access_token) {
-        spToken = params.access_token;
-        // Store with expiry
-        var exp = Date.now() + (parseInt(params.expires_in||3600) * 1000);
-        localStorage.setItem('sp_token', spToken);
-        localStorage.setItem('sp_token_exp', exp);
-        // Clean URL
-        history.replaceState(null, '', SP_REDIRECT);
-        return spToken;
+    // Handle PKCE callback: ?code=...
+    var params = new URLSearchParams(window.location.search);
+    var code = params.get('code');
+    if (code) {
+      var verifier = localStorage.getItem('sp_verifier');
+      if (verifier) {
+        // Exchange code for token
+        var body = new URLSearchParams({
+          client_id:     SP_CLIENT_ID,
+          grant_type:    'authorization_code',
+          code:          code,
+          redirect_uri:  SP_REDIRECT,
+          code_verifier: verifier
+        });
+        fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString()
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if (data.access_token) {
+            spToken = data.access_token;
+            var exp = Date.now() + ((data.expires_in || 3600) * 1000);
+            localStorage.setItem('sp_token', spToken);
+            localStorage.setItem('sp_token_exp', String(exp));
+            if (data.refresh_token) localStorage.setItem('sp_refresh', data.refresh_token);
+            localStorage.removeItem('sp_verifier');
+            history.replaceState(null, '', SP_REDIRECT);
+            // Re-init SDK with new token
+            initSDK(spToken);
+          }
+        })
+        .catch(function(e){ console.error('[SP] Token exchange error:', e); });
+        return null; // async, wait for fetch
       }
     }
-    // Check localStorage
+    // Check stored token
     var stored = localStorage.getItem('sp_token');
-    var exp    = parseInt(localStorage.getItem('sp_token_exp') || 0);
-    if (stored && Date.now() < exp) { spToken = stored; return stored; }
+    var exp    = parseInt(localStorage.getItem('sp_token_exp') || '0');
+    if (stored && Date.now() < exp - 60000) { spToken = stored; return stored; }
     return null;
   }
 
   function spLogin() {
-    var url = 'https://accounts.spotify.com/authorize'
-      + '?client_id=' + SP_CLIENT_ID
-      + '&response_type=token'
-      + '&redirect_uri=' + encodeURIComponent(SP_REDIRECT)
-      + '&scope=' + encodeURIComponent(SP_SCOPES)
-      + '&show_dialog=false';
-    window.location.href = url;
+    // PKCE Authorization Code flow (no backend needed)
+    function base64urlEncode(buf) {
+      return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
+        .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+    var verifier = base64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
+    localStorage.setItem('sp_verifier', verifier);
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)).then(function(hash) {
+      var challenge = base64urlEncode(hash);
+      var url = 'https://accounts.spotify.com/authorize'
+        + '?client_id=' + SP_CLIENT_ID
+        + '&response_type=code'
+        + '&redirect_uri=' + encodeURIComponent(SP_REDIRECT)
+        + '&scope=' + encodeURIComponent(SP_SCOPES)
+        + '&code_challenge_method=S256'
+        + '&code_challenge=' + challenge
+        + '&show_dialog=false';
+      window.location.href = url;
+    });
   }
 
   /* ── UI helpers ── */
@@ -2550,62 +2581,50 @@
   })();
 
   /* ── SDK Init ── */
-  window.onSpotifyWebPlaybackSDKReady = function() {
-    var token = spGetToken();
-
-    if (!token) {
-      // Show connect button
-      document.getElementById('btnConnect').style.display = 'flex';
-      document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">CONNETTI SPOTIFY PER ASCOLTARE</span>';
-      return;
-    }
-
+  function initSDK(token) {
+    if (spPlayer) { spPlayer.disconnect(); spPlayer = null; }
     spPlayer = new Spotify.Player({
       name: 'Kinky People — Official Site',
       getOAuthToken: function(cb) { cb(token); },
       volume: 0.8
     });
-
     spPlayer.addListener('ready', function(ref) {
       spDeviceId = ref.device_id;
-      // Start playlist
       fetch('https://api.spotify.com/v1/me/player/play?device_id=' + spDeviceId, {
         method: 'PUT',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ context_uri: SP_PLAYLIST, offset: { position: 0 } })
       });
     });
-
     spPlayer.addListener('player_state_changed', function(state) {
       if (!state) return;
       spSetPlaying(!state.paused);
       spUpdateTrack(state);
     });
-
-    spPlayer.addListener('not_ready', function(ref) {
-      console.warn('[SP] Device offline:', ref.device_id);
-    });
-
+    spPlayer.addListener('not_ready', function(ref) { console.warn('[SP] Device offline'); });
     spPlayer.addListener('initialization_error', function(e) { console.error('[SP] Init:', e.message); });
     spPlayer.addListener('authentication_error', function(e) {
-      console.error('[SP] Auth:', e.message);
-      localStorage.removeItem('sp_token');
-      localStorage.removeItem('sp_token_exp');
+      localStorage.removeItem('sp_token'); localStorage.removeItem('sp_token_exp');
       document.getElementById('btnConnect').style.display = 'flex';
+      document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">CONNETTI SPOTIFY PER ASCOLTARE</span>';
     });
     spPlayer.addListener('account_error', function(e) {
-      console.error('[SP] Account (Premium required):', e.message);
       document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">SPOTIFY PREMIUM RICHIESTO</span>';
     });
-
     spPlayer.connect();
-  };
+  }
 
-  // Trigger SDK check
-  spGetToken();
+  window.onSpotifyWebPlaybackSDKReady = function() {
+    var token = spGetToken();
+    if (token) { initSDK(token); return; }
+    // Wait for async PKCE exchange
+    setTimeout(function() {
+      if (!spToken) {
+        document.getElementById('btnConnect').style.display = 'flex';
+        document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">CONNETTI SPOTIFY PER ASCOLTARE</span>';
+      }
+    }, 3000);
+  };
   </script>
 
 </body>
