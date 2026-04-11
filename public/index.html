@@ -1945,6 +1945,95 @@
 
   <!-- MUSIC PLAYER BAR -->
   <div class="player-bar" id="playerBar">
+    </div>
+
+  <script>
+    const trackFolder = 'public/bgTracks/';
+    let playlist = [];
+    let currentTrackIndex = 0;
+    const audio = new Audio();
+    const jsmediatags = window.jsmediatags;
+
+    const trackDisplay = document.getElementById('playerTrack');
+    const btnPlay = document.getElementById('btnPlay');
+    const playerEq = document.getElementById('playerEq');
+
+    async function loadPlaylist() {
+        try {
+            const response = await fetch('get_tracks.php');
+            const files = await response.json();
+            if (files.length === 0) {
+                trackDisplay.innerText = "Nessun brano trovato";
+                return;
+            }
+            playlist = files.sort(() => Math.random() - 0.5);
+            initTrack(0);
+        } catch (error) {
+            trackDisplay.innerText = "Errore caricamento tracce";
+        }
+    }
+
+    function initTrack(index) {
+        const fileName = playlist[index];
+        const fileUrl = trackFolder + fileName;
+        audio.src = fileUrl;
+        audio.load();
+
+        jsmediatags.read(fileUrl, {
+            onSuccess: function(tag) {
+                const t = tag.tags;
+                const displayTitle = (t.artist && t.title) 
+                    ? `${t.artist} - ${t.title}` 
+                    : fileName.replace('.mp3', '');
+                trackDisplay.innerText = "♪ " + displayTitle;
+            },
+            onError: function() {
+                trackDisplay.innerText = "♪ " + fileName.replace('.mp3', '');
+            }
+        });
+    }
+
+    function toggleMusic() {
+        if (audio.paused) {
+            audio.play();
+            btnPlay.innerText = '⏸';
+            playerEq.classList.add('is-playing');
+        } else {
+            audio.pause();
+            btnPlay.innerText = '▶';
+            playerEq.classList.remove('is-playing');
+        }
+    }
+
+    function nextTrack() {
+        currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+        initTrack(currentTrackIndex);
+        audio.play();
+        btnPlay.innerText = '⏸';
+        playerEq.classList.add('is-playing');
+    }
+
+    function prevTrack() {
+        currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+        initTrack(currentTrackIndex);
+        audio.play();
+        btnPlay.innerText = '⏸';
+        playerEq.classList.add('is-playing');
+    }
+
+    function toggleMute() {
+        audio.muted = !audio.muted;
+        document.getElementById('btnVol').innerText = audio.muted ? '🔇' : '🔊';
+    }
+
+    audio.onended = nextTrack;
+    loadPlaylist();
+  </script>
+
+</body> ```
+
+### Un piccolo check finale:
+Assicurati di aver creato anche il file **`get_tracks.php`** (come ti ho scritto nel messaggio precedente) e di averlo caricato nella stessa cartella dell' `index.html`. Senza quello, il JavaScript non saprà quali canzoni andare a prendere!
     <div class="player-inner">
       <div class="player-info">
         <div class="player-eq" id="playerEq">
