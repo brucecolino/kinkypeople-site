@@ -1340,7 +1340,7 @@
       .player-track-name { max-width: 90px; font-size: 10px; }
     }
     /* Add padding to body so content doesn't hide behind player */
-    body { padding-bottom: 54px; }
+    body { padding-bottom: 60px; }
 </style>
 </head>
 <body>
@@ -2359,10 +2359,11 @@
 
 <!-- SPOTIFY PLAYER BAR -->
 
-  <!-- Hidden Spotify iframe (audio only) -->
+  <!-- Spotify iframe: 1x1px visibile così postMessage funziona -->
   <iframe id="spotifyFrame"
     src="https://open.spotify.com/embed/playlist/3wVFkxZqgYqT43wqaYdsCB?utm_source=generator&theme=0&autoplay=1"
-    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    style="position:fixed;bottom:56px;left:0;width:1px;height:1px;opacity:0;pointer-events:none;border:none;">
   </iframe>
 
   <!-- Custom player UI -->
@@ -2380,16 +2381,13 @@
 
       <!-- CENTER: controls -->
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <!-- Prev -->
         <button class="player-ctrl" onclick="spCmd('previous')" title="Precedente" aria-label="Precedente">
           <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
         </button>
-        <!-- Play/Pause -->
         <button class="player-ctrl player-ctrl--play" id="btnPlay" onclick="spToggle()" title="Play/Pausa" aria-label="Play/Pausa">
           <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
-        <!-- Next -->
         <button class="player-ctrl" onclick="spCmd('next')" title="Successivo" aria-label="Successivo">
           <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
         </button>
@@ -2397,14 +2395,11 @@
 
       <!-- RIGHT: volume + info -->
       <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px">
-        <!-- Mute toggle -->
         <button class="player-ctrl" id="btnVol" onclick="spMute()" title="Volume" aria-label="Volume">
           <svg id="iconVolOn" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
           <svg id="iconVolOff" viewBox="0 0 24 24" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>
         </button>
-        <!-- Volume slider -->
         <input type="range" class="player-vol-slider" id="volSlider" min="0" max="100" value="70" oninput="spVolume(this.value)"/>
-        <!-- Info panel -->
         <div class="player-info-wrapper" style="position:relative">
           <button class="player-ctrl" id="btnInfo" title="Info brano" aria-label="Info brano">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
@@ -2426,16 +2421,14 @@
   </div>
 
   <script>
-  /* ── Spotify iframe controller via postMessage ── */
   var spPlaying = false;
   var spMuted   = false;
-  var infoPanelOpen = false;
 
   function getFrame() { return document.getElementById('spotifyFrame'); }
 
   function spSend(method, args) {
     var f = getFrame();
-    if (!f) return;
+    if (!f || !f.contentWindow) return;
     f.contentWindow.postMessage(JSON.stringify({ method: method, args: args || [] }), '*');
   }
 
@@ -2461,53 +2454,49 @@
 
   function spMute() {
     spMuted = !spMuted;
-    spSend('setVolume', [spMuted ? 0 : (document.getElementById('volSlider').value / 100)]);
-    document.getElementById('volSlider').value = spMuted ? 0 : 70;
+    var vol = spMuted ? 0 : parseInt(document.getElementById('volSlider').value);
+    if (!spMuted && vol === 0) vol = 70;
+    spSend('setVolume', [vol / 100]);
+    document.getElementById('volSlider').value = spMuted ? 0 : vol;
     document.getElementById('iconVolOn').style.display  = spMuted ? 'none' : '';
     document.getElementById('iconVolOff').style.display = spMuted ? '' : 'none';
   }
 
-  // Listen for track info from Spotify iframe
+  // Receive track info from Spotify iframe
   window.addEventListener('message', function(e) {
     try {
       var d = JSON.parse(e.data);
-      if (d.type === 'playback_update') {
-        var playing = !d.payload.isPaused;
-        if (playing !== spPlaying) {
-          spPlaying = playing;
-          document.getElementById('iconPlay').style.display  = spPlaying ? 'none' : '';
-          document.getElementById('iconPause').style.display = spPlaying ? '' : 'none';
-          document.getElementById('playerEq').classList.toggle('active', spPlaying);
-        }
-        // Update track name if available
-        if (d.payload.track && d.payload.track.name) {
-          var t = d.payload.track;
-          var artist = t.artists && t.artists[0] ? t.artists[0].name : '';
-          document.getElementById('playerTrack').innerHTML = '<strong>' + (artist ? artist + ' — ' : '') + t.name + '</strong>';
-          document.getElementById('infoTitle').textContent = t.name;
-          if (t.album && t.album.images && t.album.images[0]) {
-            var imgUrl = t.album.images[0].url;
-            document.getElementById('infoCover').innerHTML = '<img src="' + imgUrl + '" alt="cover"/>';
-            document.getElementById('playerCoverThumb').innerHTML = '<img src="' + imgUrl + '" alt="cover" style="width:100%;height:100%;object-fit:cover;"/>';
+      if (d.type === 'playback_update' || d.type === 'player_state_changed') {
+        var payload = d.payload || d;
+        var playing = payload.isPaused === false || payload.is_playing === true;
+        spPlaying = playing;
+        document.getElementById('iconPlay').style.display  = playing ? 'none' : '';
+        document.getElementById('iconPause').style.display = playing ? '' : 'none';
+        document.getElementById('playerEq').classList.toggle('active', playing);
+        var track = (payload.track) || (payload.item);
+        if (track && track.name) {
+          var artist = (track.artists && track.artists[0]) ? track.artists[0].name : 'Kinky People';
+          document.getElementById('playerTrack').innerHTML = '<strong>' + artist + ' — ' + track.name + '</strong>';
+          document.getElementById('infoTitle').textContent = track.name;
+          var img = track.album && track.album.images && track.album.images[0];
+          if (img) {
+            document.getElementById('infoCover').innerHTML = '<img src="'+img.url+'" alt="cover" style="width:100%;height:100%;object-fit:cover"/>';
+            document.getElementById('playerCoverThumb').innerHTML = '<img src="'+img.url+'" alt="cover" style="width:100%;height:100%;object-fit:cover"/>';
           }
         }
       }
-    } catch(err) {}
+    } catch(e) {}
   });
 
-  // Auto-start: send resume on first user interaction
-  var autoStarted = false;
+  // Auto-start on first interaction
   document.addEventListener('click', function() {
-    if (!autoStarted) {
-      autoStarted = true;
-      setTimeout(function() {
-        spSend('resume');
-        spPlaying = true;
-        document.getElementById('iconPlay').style.display  = 'none';
-        document.getElementById('iconPause').style.display = '';
-        document.getElementById('playerEq').classList.add('active');
-      }, 800);
-    }
+    setTimeout(function() {
+      spSend('resume');
+      spPlaying = true;
+      document.getElementById('iconPlay').style.display  = 'none';
+      document.getElementById('iconPause').style.display = '';
+      document.getElementById('playerEq').classList.add('active');
+    }, 600);
   }, { once: true });
   </script>
 
