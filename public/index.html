@@ -2091,12 +2091,9 @@
       document.getElementById('playerTrack').innerHTML = '<strong style="color:var(--text-muted)">Nessuna traccia</strong>';
       return;
     }
+    audio.muted = false;
+    audio.volume = 0.30;
     loadTrack(0);
-    // Autoplay muted on load, waiting for interaction
-    audio.muted = true;
-    audio.play().then(function(){
-      audio.muted = false;
-    }).catch(function(){});
   }
 
   function loadTrack(idx) {
