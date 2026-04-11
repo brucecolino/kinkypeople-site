@@ -894,7 +894,94 @@
       width: 500px; opacity: .06; pointer-events: none;
       filter: saturate(0);
     }
-  </style>
+  
+    /* ─── MUSIC PLAYER BAR ─── */
+    .player-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(10,10,10,.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--gold-line);
+      padding: 0 1rem;
+      transform: translateY(0);
+      transition: transform .4s ease;
+    }
+    .player-inner {
+      max-width: 1200px; margin: 0 auto;
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem;
+    }
+    .player-info {
+      display: flex; align-items: center; gap: 10px;
+      flex: 1; min-width: 0;
+    }
+    .player-eq {
+      display: flex; align-items: flex-end; gap: 2px;
+      height: 18px; width: 20px; flex-shrink: 0;
+    }
+    .player-eq span {
+      display: block; width: 3px; border-radius: 1px;
+      background: var(--gold); opacity: .4;
+      height: 4px;
+    }
+    .player-eq.active span {
+      opacity: 1;
+      animation: eqBounce .6s ease-in-out infinite alternate;
+    }
+    .player-eq.active span:nth-child(1) { animation-delay: 0s; }
+    .player-eq.active span:nth-child(2) { animation-delay: .15s; }
+    .player-eq.active span:nth-child(3) { animation-delay: .3s; }
+    .player-eq.active span:nth-child(4) { animation-delay: .1s; }
+    @keyframes eqBounce {
+      0% { height: 4px; }
+      100% { height: 16px; }
+    }
+    .player-track {
+      font-size: 12px; color: var(--text-dim);
+      letter-spacing: 1px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .player-track strong { color: var(--gold); font-weight: 600; }
+    .player-controls {
+      display: flex; align-items: center; gap: 4px;
+      flex-shrink: 0;
+    }
+    .player-ctrl {
+      background: none; border: 1px solid var(--border);
+      color: var(--text-dim); border-radius: 50%;
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px;
+      transition: all .2s;
+    }
+    .player-ctrl:hover { color: var(--gold); border-color: var(--gold-line); background: var(--gold-glow); }
+    .player-ctrl--play {
+      width: 40px; height: 40px; font-size: 16px;
+      border-color: var(--gold-line); color: var(--gold);
+    }
+    .player-ctrl--play:hover { background: var(--gold); color: #111; }
+    .player-vol {
+      display: flex; align-items: center; gap: 6px;
+      flex-shrink: 0;
+    }
+    .player-vol-slider {
+      width: 70px; height: 4px;
+      -webkit-appearance: none; appearance: none;
+      background: var(--border); border-radius: 2px;
+      outline: none;
+    }
+    .player-vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--gold); cursor: pointer;
+    }
+    @media (max-width: 500px) {
+      .player-vol-slider { display: none; }
+      .player-track { font-size: 10px; }
+    }
+    /* Add padding to body so content doesn't hide behind player */
+    body { padding-bottom: 56px; }
+</style>
 </head>
 <body>
 
@@ -1109,9 +1196,8 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People · All rights reserved · P.IVA in corso</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
-          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">
-            💬 WhatsApp Booking
-          </a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
+          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
     </footer>
@@ -1235,6 +1321,7 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
           <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
@@ -1307,7 +1394,8 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
-          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp</a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
+          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
     </footer>
@@ -1439,7 +1527,8 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
-          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp</a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
+          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
     </footer>
@@ -1551,7 +1640,8 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
-          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp</a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
+          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
     </footer>
@@ -1596,7 +1686,8 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
-          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp</a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
+          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
     </footer>
@@ -1652,6 +1743,9 @@
                 <a href="https://www.facebook.com" target="_blank" class="social-btn">
                   📘 Facebook
                 </a>
+                <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="social-btn" style="background:rgba(29,185,84,.1);border-color:rgba(29,185,84,.3);color:#1DB954">
+                  🎵 Spotify
+                </a>
               </div>
             </div>
           </div>
@@ -1692,7 +1786,8 @@
         <div class="footer-bottom">
           <div class="footer-copy">© 2025 Kinky People · Made with ❤️ in Abruzzo</div>
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="footer-wa" style="background:rgba(225,48,108,.07);border-color:rgba(225,48,108,.2);color:#E1306C">📷 Instagram</a>
-          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp</a>
+          <a href="https://open.spotify.com/search/kinky%20people%20reggae" target="_blank" class="footer-wa" style="background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.25);color:#1DB954">🎵 Spotify</a>
+          <a href="https://wa.me/393279703676" target="_blank" class="footer-wa">💬 WhatsApp Booking</a>
         </div>
       </div>
     </footer>
@@ -1846,5 +1941,27 @@
     //   });
     // });
   </script>
+
+  <!-- MUSIC PLAYER BAR -->
+  <div class="player-bar" id="playerBar">
+    <div class="player-inner">
+      <div class="player-info">
+        <div class="player-eq" id="playerEq">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="player-track" id="playerTrack">♪ Loading...</div>
+      </div>
+      <div class="player-controls">
+        <button class="player-ctrl" id="btnPrev" onclick="prevTrack()" title="Precedente">⏮</button>
+        <button class="player-ctrl player-ctrl--play" id="btnPlay" onclick="toggleMusic()" title="Play/Pausa">▶</button>
+        <button class="player-ctrl" id="btnNext" onclick="nextTrack()" title="Successivo">⏭</button>
+      </div>
+      <div class="player-vol">
+        <button class="player-ctrl" id="btnVol" onclick="toggleMute()" title="Volume">🔊</button>
+        <input type="range" class="player-vol-slider" id="volSlider" min="0" max="100" value="30" oninput="setVolume(this.value)"/>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
