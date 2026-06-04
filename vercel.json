@@ -1,3 +1,25 @@
 {
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/calculator",
+      "destination": "https://kinky-people-calculator.vercel.app/"
+    },
+    {
+      "source": "/calculator/",
+      "destination": "https://kinky-people-calculator.vercel.app/"
+    },
+    {
+      "source": "/calculator/:path*",
+      "destination": "https://kinky-people-calculator.vercel.app/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "https://kinky-people-calculator.vercel.app/assets/:path*"
+    },
+    {
+      "source": "/api/notify",
+      "destination": "https://kinky-people-calculator.vercel.app/api/notify"
+    }
+  ]
 }
