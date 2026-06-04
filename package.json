@@ -1,0 +1,11 @@
+{
+  "name": "kinkypeople-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sito ufficiale Kinky People — Live Reggae Band. Static frontend + Vercel serverless API.",
+  "type": "module",
+  "dependencies": {
+    "google-auth-library": "^9.4.0",
+    "googleapis": "^131.0.0"
+  }
+}

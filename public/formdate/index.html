@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Aggiungi Data Live · Area Band · Kinky People</title>
+  <meta name="robots" content="noindex, nofollow"/>
+  <meta name="theme-color" content="#0A0A0A"/>
+  <link rel="icon" type="image/png" href="/Holo_logo.png"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet"/>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    :root {
+      --gold: #D4A843;
+      --gold-dim: #9A7A30;
+      --gold-glow: rgba(212,168,67,.15);
+      --gold-line: rgba(212,168,67,.25);
+      --bg: #0A0A0A;
+      --bg-2: #111111;
+      --bg-3: #1A1A1A;
+      --bg-4: #222222;
+      --border: rgba(255,255,255,.07);
+      --text: #F0EDE6;
+      --text-dim: #888880;
+      --text-muted: #555550;
+      --green: #4ADE80;
+      --red: #F87171;
+
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+
+      --r-sm: 6px;
+      --r-md: 12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(212,168,67,.06) 0%, transparent 50%),
+        var(--bg);
+    }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: #E6B85B; }
+
+    .topbar {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,10,.7);
+      backdrop-filter: blur(20px);
+    }
+    .topbar img { width: 32px; height: 32px; object-fit: contain; }
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+      color: var(--gold);
+    }
+    .topbar__back {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .wrap {
+      width: min(100% - 2rem, 720px);
+      margin: 0 auto;
+      padding: 3.5rem 0 4rem;
+      flex: 1;
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      letter-spacing: 4px;
+      font-weight: 600;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 7vw, 3.6rem);
+      letter-spacing: 4px;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    h1 .gold { color: var(--gold); }
+    .lede {
+      font-size: 14px;
+      color: var(--text-dim);
+      max-width: 50ch;
+      margin-bottom: 2.5rem;
+      line-height: 1.55;
+    }
+    .gold-line {
+      width: 36px; height: 2px;
+      background: var(--gold);
+      margin: 14px 0 22px;
+    }
+
+    /* Login card */
+    .auth-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 2rem 1.75rem;
+      text-align: center;
+    }
+    .auth-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .auth-card p {
+      font-size: 13px;
+      color: var(--text-dim);
+      max-width: 38ch;
+      margin: 0 auto 1.5rem;
+      line-height: 1.55;
+    }
+    #gsi-button-mount { display: flex; justify-content: center; min-height: 44px; }
+    .auth-fineprint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1.25rem;
+    }
+
+    /* Form card */
+    .form-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 2rem 1.75rem;
+    }
+    .form-card__head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-card__head img {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+    .form-card__head__meta { display: flex; flex-direction: column; }
+    .form-card__head__name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .form-card__head__email {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .form-card__head__logout {
+      margin-left: auto;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+    .form-card__head__logout:hover { color: var(--gold); }
+
+    .field { margin-bottom: 1.1rem; }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.1rem;
+    }
+    label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    label .opt {
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 1px;
+      margin-left: 6px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 11px 12px;
+      background: var(--bg-4);
+      border: 1px solid #333;
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .18s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--gold);
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-muted); }
+    textarea { resize: vertical; min-height: 88px; }
+    input[type="date"], input[type="time"] { color-scheme: dark; }
+
+    /* Radio group tag */
+    .tag-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tag-group input { display: none; }
+    .tag-group label {
+      flex: 1;
+      min-width: 100px;
+      padding: 9px 12px;
+      background: var(--bg-4);
+      border: 1px solid #333;
+      border-radius: var(--r-sm);
+      text-align: center;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all .18s;
+      color: var(--text-dim);
+      margin: 0;
+    }
+    .tag-group input:checked + label {
+      background: var(--gold-glow);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: var(--r-sm);
+      background: var(--gold);
+      color: #111;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all .2s;
+      margin-top: 1rem;
+    }
+    .btn:hover { background: #E6B85B; transform: translateY(-1px); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn.loading { opacity: .7; }
+
+    /* Status messages */
+    .status {
+      margin-top: 1.25rem;
+      padding: 12px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .status.success {
+      background: rgba(74,222,128,.08);
+      border: 1px solid rgba(74,222,128,.3);
+      color: var(--green);
+    }
+    .status.error {
+      background: rgba(248,113,113,.08);
+      border: 1px solid rgba(248,113,113,.3);
+      color: var(--red);
+    }
+    .status.info {
+      background: rgba(212,168,67,.06);
+      border: 1px solid var(--gold-line);
+      color: var(--gold-dim);
+    }
+    .status a { color: inherit; text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .field-row { grid-template-columns: 1fr; }
+      .wrap { padding: 2rem 0 3rem; }
+      .form-card, .auth-card { padding: 1.5rem 1.25rem; }
+      .tag-group label { min-width: 0; flex: 1 1 calc(50% - 4px); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <img src="/Holo_logo.png" alt="Kinky People" onerror="this.style.display='none'"/>
+    <span class="topbar__name">KINKY PEOPLE</span>
+    <a href="/" class="topbar__back">← Sito</a>
+  </header>
+
+  <main class="wrap">
+    <div class="eyebrow">Area Band · Tool Interno</div>
+    <h1>AGGIUNGI<br/><span class="gold">DATA LIVE</span></h1>
+    <div class="gold-line"></div>
+    <p class="lede">
+      Form interno per inserire un nuovo evento sul Google Calendar condiviso
+      di Kinky People. La data viene aggiunta al calendar e appare
+      automaticamente nella lista date del sito entro pochi minuti.
+    </p>
+
+    <!-- AUTH CARD: shown until user signs in -->
+    <section class="auth-card" id="authCard">
+      <h2>ACCESSO RISERVATO</h2>
+      <p>
+        Solo le persone autorizzate possono aggiungere date.
+        Accedi con il tuo account Google.
+      </p>
+      <div id="gsi-button-mount"></div>
+      <div class="auth-fineprint">
+        Email autorizzata necessaria · token non salvato lato server
+      </div>
+    </section>
+
+    <!-- FORM CARD: shown after sign-in -->
+    <section class="form-card" id="formCard" style="display:none">
+      <header class="form-card__head">
+        <img id="userPic" alt=""/>
+        <div class="form-card__head__meta">
+          <span class="form-card__head__name" id="userName">—</span>
+          <span class="form-card__head__email" id="userEmail">—</span>
+        </div>
+        <button type="button" class="form-card__head__logout" onclick="signOut()">Esci</button>
+      </header>
+
+      <form id="eventForm" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="f_summary">Nome evento / Venue</label>
+          <input id="f_summary" name="summary" required maxlength="120" placeholder="Es: Lido Tropical · Pescara"/>
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label for="f_date">Data</label>
+            <input id="f_date" name="date" type="date" required/>
+          </div>
+          <div>
+            <label for="f_time">Ora inizio</label>
+            <input id="f_time" name="time" type="time" value="21:30" required/>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label for="f_hours">Durata (ore) <span class="opt">default 2</span></label>
+            <input id="f_hours" name="hours" type="number" min="1" max="12" step="0.5" value="2"/>
+          </div>
+          <div>
+            <label for="f_location">Città / Luogo</label>
+            <input id="f_location" name="location" required maxlength="120" placeholder="Es: Pescara (PE)"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tipologia</label>
+          <div class="tag-group">
+            <input type="radio" id="tag_live" name="tag" value="LIVE" checked/>
+            <label for="tag_live">LIVE</label>
+            <input type="radio" id="tag_club" name="tag" value="CLUB"/>
+            <label for="tag_club">CLUB</label>
+            <input type="radio" id="tag_fest" name="tag" value="FESTIVAL"/>
+            <label for="tag_fest">FESTIVAL</label>
+            <input type="radio" id="tag_priv" name="tag" value="PRIVATE"/>
+            <label for="tag_priv">PRIVATE</label>
+            <input type="radio" id="tag_trib" name="tag" value="TRIBUTE"/>
+            <label for="tag_trib">TRIBUTE</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f_ticket">Link ticket / info <span class="opt">opzionale</span></label>
+          <input id="f_ticket" name="ticketUrl" type="url" placeholder="https://..." maxlength="500"/>
+        </div>
+
+        <div class="field">
+          <label for="f_notes">Note interne <span class="opt">opzionale</span></label>
+          <textarea id="f_notes" name="notes" maxlength="1000" placeholder="Backline, cachet concordato, contatti organizzatore..."></textarea>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">AGGIUNGI A CALENDAR</button>
+        <div class="status" id="statusBox" style="display:none"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    /* ───────────────────────────────────────────────
+       Google Identity Services - sign-in flow
+       Client ID iniettato a build-time o sostituito a mano.
+       Senza Client ID, il bottone GIS non viene renderizzato.
+       ─────────────────────────────────────────────── */
+    var GIS_CLIENT_ID = "GOOGLE_OAUTH_CLIENT_ID";   // <-- sostituisci con il Client ID OAuth web
+
+    var currentCredential = null;
+    var currentEmail = null;
+
+    function onGoogleCredential(response) {
+      currentCredential = response.credential;
+      // Decode JWT to show user info (NON viene verificato qui — la verifica e lato server)
+      try {
+        var payload = JSON.parse(atob(response.credential.split('.')[1]));
+        currentEmail = payload.email;
+        document.getElementById('userName').textContent = payload.name || payload.email;
+        document.getElementById('userEmail').textContent = payload.email;
+        if (payload.picture) document.getElementById('userPic').src = payload.picture;
+      } catch (e) {}
+      document.getElementById('authCard').style.display = 'none';
+      document.getElementById('formCard').style.display = '';
+    }
+
+    function signOut() {
+      currentCredential = null;
+      currentEmail = null;
+      document.getElementById('formCard').style.display = 'none';
+      document.getElementById('authCard').style.display = '';
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+      }
+    }
+
+    window.addEventListener('load', function () {
+      function mount() {
+        if (!window.google || !google.accounts || !google.accounts.id) {
+          return setTimeout(mount, 200);
+        }
+        if (GIS_CLIENT_ID === "GOOGLE_OAUTH_CLIENT_ID") {
+          document.getElementById('gsi-button-mount').innerHTML =
+            '<div style="color:#F87171;font-size:13px">⚠ Client ID OAuth non configurato.<br/>Setup richiesto in <code>public/formdate/index.html</code></div>';
+          return;
+        }
+        google.accounts.id.initialize({
+          client_id: GIS_CLIENT_ID,
+          callback: onGoogleCredential,
+          auto_select: false,
+          ux_mode: 'popup'
+        });
+        google.accounts.id.renderButton(
+          document.getElementById('gsi-button-mount'),
+          { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with' }
+        );
+      }
+      mount();
+    });
+
+    /* ───────────────────────────────────────────────
+       Form submit
+       ─────────────────────────────────────────────── */
+    document.getElementById('eventForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!currentCredential) { showStatus('error', 'Effettua prima il login.'); return; }
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.textContent = 'INVIO...';
+      hideStatus();
+
+      var data = new FormData(this);
+      var date = data.get('date');
+      var time = data.get('time') || '21:00';
+      var startLocal = new Date(date + 'T' + time + ':00');
+      var startISO = startLocal.toISOString();
+
+      var payload = {
+        credential: currentCredential,
+        summary: data.get('summary').trim(),
+        startISO: startISO,
+        hours: parseFloat(data.get('hours')) || 2,
+        location: data.get('location').trim(),
+        tag: data.get('tag'),
+        ticketUrl: (data.get('ticketUrl') || '').trim(),
+        notes: (data.get('notes') || '').trim()
+      };
+
+      try {
+        var res = await fetch('/api/add-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        var json = await res.json().catch(function(){ return {}; });
+
+        if (res.ok && json.ok) {
+          var link = json.htmlLink
+            ? ' <a href="' + json.htmlLink + '" target="_blank" rel="noopener">Apri su Calendar →</a>'
+            : '';
+          showStatus('success', '✓ Evento aggiunto.' + link);
+          document.getElementById('eventForm').reset();
+          document.getElementById('f_time').value = '21:30';
+          document.getElementById('f_hours').value = '2';
+          document.getElementById('tag_live').checked = true;
+        } else if (res.status === 401 || res.status === 403) {
+          showStatus('error', '⛔ Accesso negato: ' + (json.error || 'email non autorizzata.'));
+        } else {
+          showStatus('error', '✗ Errore: ' + (json.error || ('HTTP ' + res.status)));
+        }
+      } catch (err) {
+        showStatus('error', '✗ Errore di rete: ' + (err.message || err));
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = 'AGGIUNGI A CALENDAR';
+      }
+    });
+
+    function showStatus(kind, html) {
+      var box = document.getElementById('statusBox');
+      box.className = 'status ' + kind;
+      box.innerHTML = html;
+      box.style.display = '';
+    }
+    function hideStatus() {
+      var box = document.getElementById('statusBox');
+      box.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

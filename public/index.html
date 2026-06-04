@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>Kinky People — Live Reggae Band · Abruzzo, Italia</title>
+  <title>Kinky People — Live Reggae Band</title>
 
   <!-- SEO -->
   <meta name="description" content="Kinky People — Live Reggae Band dall'Abruzzo dal 2012. JAMROCK, Bob Marley Tribute, brani inediti. Disponibili in tutta Italia ed Europa. Preventivo online istantaneo."/>
@@ -349,43 +349,63 @@
     }
 
     /* ═══════════════════════════════════
-       HOME — CINEMATIC BAND PHOTO (portrait, full visibility)
+       HOME — CINEMATIC BAND PHOTO (full-bleed con parallax, desktop only)
     ═══════════════════════════════════ */
     .band-cinematic {
       position: relative;
       width: 100%;
+      min-height: 85vh;
       overflow: hidden;
       background:
-        radial-gradient(ellipse at center, #1a1410 0%, var(--bg) 70%),
-        var(--bg);
-      padding: 3rem 1rem;
+        linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,.1) 35%, rgba(10,10,10,.65) 100%),
+        url('/kinky_foto2-sq.jpeg') center 35%/cover no-repeat,
+        #0A0A0A;
+      background-image:
+        linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,.1) 35%, rgba(10,10,10,.65) 100%),
+        image-set(url('/kinky_foto2-sq.webp') type('image/webp'), url('/kinky_foto2-sq.jpeg') type('image/jpeg'));
+      background-attachment: fixed;                      /* parallax CSS nativo */
+      background-position: center 35%;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-color: #0A0A0A;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
     }
-    .band-cinematic__inner {
-      position: relative;
-      width: 100%;
-      max-width: 780px;
-      margin: 0 auto;
+    /* hairline gold accent in alto e in basso per scarpinata */
+    .band-cinematic::before,
+    .band-cinematic::after {
+      content: ''; position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-line) 50%, transparent);
+      z-index: 2; pointer-events: none;
+    }
+    .band-cinematic::before { top: 0; }
+    .band-cinematic::after  { bottom: 0; }
+
+    /* ═══════════════════════════════════
+       HOME — REELS GRID
+    ═══════════════════════════════════ */
+    .home-reels-section { padding: 4rem 0 2rem; background: var(--bg); }
+    .reels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(310px,100%), 1fr));
+      gap: 1.5rem;
+    }
+    .reels-grid > div {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
       overflow: hidden;
-      border-radius: 4px;
-      box-shadow:
-        0 30px 80px -20px rgba(0,0,0,.6),
-        0 0 0 1px rgba(212,168,67,.12);
+      min-height: 500px;
+      transition: border-color .25s, transform .25s;
     }
-    .band-cinematic__img {
-      width: 100%;
-      height: auto;
-      display: block;
-      filter: saturate(.92) contrast(1.05);
+    .reels-grid > div:hover {
+      border-color: rgba(212,168,67,.35);
+      transform: translateY(-2px);
     }
-    /* fade overlays disattivati per portrait — foto a vista intera */
-    .band-cinematic__inner::before,
-    .band-cinematic__inner::after { content: none; }
-    .band-cinematic__accent {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
-      z-index: 3;
+    @media (max-width: 600px) {
+      .home-reels-section { padding: 2.5rem 0 1rem; }
+      .reels-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .reels-grid > div { min-height: 460px; }
     }
     /* Mobile booking buttons symmetry */
     @media (max-width: 700px) {
@@ -396,9 +416,13 @@
         box-sizing: border-box;
       }
     }
-    @media (max-width: 600px) {
-      .band-cinematic { padding: 1.5rem .8rem; }
-      .band-cinematic__inner { max-width: 100%; border-radius: 3px; }
+    /* iOS Safari non supporta background-attachment: fixed → fallback con transform */
+    @supports not (-webkit-touch-callout: none) {
+      /* no-op: regola necessaria per detection */
+    }
+    @media (hover: none) and (pointer: coarse) {
+      /* touch devices: parallax CSS-fixed può ghosting → disabilitato, parallax via JS */
+      .band-cinematic { background-attachment: scroll; }
     }
 
     /* ═══════════════════════════════════
@@ -889,8 +913,27 @@
       .hamburger { display: flex; }
     }
     @media (max-width: 600px) {
+      /* Hero su mobile: niente foto, solo logo Holo gigante */
+      .hero-photo,
+      .hero-glow,
+      .hero-glow-2 { display: none !important; }
+      .hero-bg::after { background: none; }
+      .hero { background: radial-gradient(ellipse at 50% 30%, rgba(212,168,67,.08) 0%, transparent 60%), #0A0A0A; }
+      .hero-content::before {
+        content: '';
+        display: block;
+        width: 220px; height: 220px;
+        margin: 0 auto 1.5rem;
+        background: url('/Holo_logo.png') center/contain no-repeat;
+        filter: drop-shadow(0 0 30px rgba(212,168,67,.35));
+        animation: heroLogoFloat 4s ease-in-out infinite;
+      }
+      @keyframes heroLogoFloat {
+        0%, 100% { transform: translateY(0); }
+        50%      { transform: translateY(-6px); }
+      }
+
       .hero-title { font-size: clamp(3.5rem, 18vw, 6rem); }
-      .hero-photo { background-position: 60% 8%; } /* portrait crop: cielo sopra le teste, band a metà */
       .hero-eyebrow { font-size: 11px; padding: 0 1rem; }
       .hero-cta-group { flex-direction: column; gap: 10px; padding: 0 1rem; }
       .hero-cta-group > * { width: 100%; text-align: center; }
@@ -899,6 +942,32 @@
       .footer-top { flex-direction: column; }
       .booking-banner { flex-direction: column; text-align: center; }
       .formats-strip { padding: 1.5rem 0; }
+
+      /* Formats-strip: griglia 2x2(+1) statica invece di scroll orizzontale */
+      .formats-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        overflow: visible;
+      }
+      .format-item {
+        min-width: 0;
+        padding: 1.1rem 1rem;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        text-align: center;
+      }
+      .format-item:nth-child(2n) { border-right: none; }
+      .format-item:nth-last-child(1):nth-child(odd) {
+        grid-column: 1 / -1;     /* riga finale: 5° elemento full-width */
+        border-right: none;
+        border-bottom: none;
+      }
+      .format-item__name { font-size: 1.3rem; }
+      .format-item__desc { font-size: 11px; }
+
+      /* Band-cinematic: nascosta su mobile (foto desktop-only) */
+      .band-cinematic { display: none !important; }
     }
 
     /* ═══════════════════════════════════
@@ -1115,8 +1184,27 @@
       .hamburger { display: flex; }
     }
     @media (max-width: 600px) {
+      /* Hero su mobile: niente foto, solo logo Holo gigante */
+      .hero-photo,
+      .hero-glow,
+      .hero-glow-2 { display: none !important; }
+      .hero-bg::after { background: none; }
+      .hero { background: radial-gradient(ellipse at 50% 30%, rgba(212,168,67,.08) 0%, transparent 60%), #0A0A0A; }
+      .hero-content::before {
+        content: '';
+        display: block;
+        width: 220px; height: 220px;
+        margin: 0 auto 1.5rem;
+        background: url('/Holo_logo.png') center/contain no-repeat;
+        filter: drop-shadow(0 0 30px rgba(212,168,67,.35));
+        animation: heroLogoFloat 4s ease-in-out infinite;
+      }
+      @keyframes heroLogoFloat {
+        0%, 100% { transform: translateY(0); }
+        50%      { transform: translateY(-6px); }
+      }
+
       .hero-title { font-size: clamp(3.5rem, 18vw, 6rem); }
-      .hero-photo { background-position: 60% 8%; } /* portrait crop: cielo sopra le teste, band a metà */
       .hero-eyebrow { font-size: 11px; padding: 0 1rem; }
       .hero-cta-group { flex-direction: column; gap: 10px; padding: 0 1rem; }
       .hero-cta-group > * { width: 100%; text-align: center; }
@@ -1125,6 +1213,32 @@
       .footer-top { flex-direction: column; }
       .booking-banner { flex-direction: column; text-align: center; }
       .formats-strip { padding: 1.5rem 0; }
+
+      /* Formats-strip: griglia 2x2(+1) statica invece di scroll orizzontale */
+      .formats-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        overflow: visible;
+      }
+      .format-item {
+        min-width: 0;
+        padding: 1.1rem 1rem;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        text-align: center;
+      }
+      .format-item:nth-child(2n) { border-right: none; }
+      .format-item:nth-last-child(1):nth-child(odd) {
+        grid-column: 1 / -1;     /* riga finale: 5° elemento full-width */
+        border-right: none;
+        border-bottom: none;
+      }
+      .format-item__name { font-size: 1.3rem; }
+      .format-item__desc { font-size: 11px; }
+
+      /* Band-cinematic: nascosta su mobile (foto desktop-only) */
+      .band-cinematic { display: none !important; }
     }
 
     /* ═══════════════════════════════════
@@ -1416,7 +1530,7 @@
       <div class="hero-glow"></div>
       <div class="hero-glow-2"></div>
       <div class="hero-content reveal visible">
-        <span class="hero-eyebrow">🇯🇲 Live Reggae Band · Abruzzo, Italia · Dal 2012</span>
+        <span class="hero-eyebrow">LIVE REGGAE BAND SINCE 2012</span>
         <h1 class="hero-title">
           KINKY
           <span class="line-gold">PEOPLE</span>
@@ -1462,13 +1576,30 @@
       </div>
     </div>
 
-    <!-- CINEMATIC BAND PHOTO -->
-    <div class="band-cinematic reveal">
-      <div class="band-cinematic__inner">
-        <picture><source srcset="kinky_foto2.webp" type="image/webp"/><img class="band-cinematic__img" src="kinky_foto2.jpeg" alt="Kinky People — La Band" width="1200" height="1600" loading="lazy" decoding="async" onerror="this.parentElement.parentElement.parentElement.style.display='none'"/></picture>
+    <!-- INSTAGRAM REELS HOME (sotto la hero/formats) -->
+    <section class="section home-reels-section">
+      <div class="container">
+        <div class="reveal">
+          <span class="section-label">Social</span>
+          <h2 class="section-title">DAL NOSTRO <span>INSTAGRAM</span></h2>
+          <div class="gold-line"></div>
+          <p class="section-sub" style="margin-bottom:2rem">
+            Gli ultimi Reel da
+            <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" rel="noopener" style="color:var(--gold)">@kinkypeoplejamrock</a>
+          </p>
+        </div>
+        <div id="reels-container-home" class="reels-grid reveal"></div>
+        <div style="text-align:center;margin-top:2.5rem" class="reveal">
+          <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" rel="noopener" class="btn-ghost" style="display:inline-flex;align-items:center;gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            SEGUICI SU INSTAGRAM
+          </a>
+        </div>
       </div>
-      <div class="band-cinematic__accent"></div>
-    </div>
+    </section>
+
+    <!-- CINEMATIC BAND PHOTO — full-bleed con parallax (desktop only) -->
+    <div class="band-cinematic" aria-hidden="true"></div>
 
     <!-- ABOUT TEASER -->
     <section class="section">
@@ -1766,8 +1897,7 @@
           <h2 class="section-title" style="font-size:2rem">DAL NOSTRO <span>INSTAGRAM</span></h2>
           <div class="gold-line"></div>
           <p style="color:var(--text-dim);font-size:14px;margin-bottom:2rem">I nostri ultimi Reel da <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" style="color:var(--gold)">@kinkypeoplejamrock</a></p>
-          <div id="reels-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:1.5rem">
-          </div>
+          <div id="reels-container" class="reels-grid"></div>
           <div style="margin-top:2rem;text-align:center">
             <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" class="btn-ghost" style="display:inline-block;font-size:.85rem;padding:10px 24px">
               📷 TUTTI I REEL SU INSTAGRAM →
@@ -2279,23 +2409,31 @@
        Se le env var IG_ACCESS_TOKEN/IG_USER_ID non sono settate il serverless
        restituisce una lista di backup. Vedi api/ig-reels.js per il setup. */
     function renderReels(items) {
-      var container = document.getElementById('reels-container');
-      if (!container) return;
-      container.innerHTML = '';
-      if (!items || !items.length) { container.style.display = 'none'; return; }
-      items.forEach(function(item) {
-        var url = (typeof item === 'string') ? item : item.permalink;
-        if (!url) return;
-        var wrapper = document.createElement('div');
-        wrapper.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;min-height:500px';
-        var iframe = document.createElement('iframe');
-        iframe.src = (url.endsWith('/') ? url : url + '/') + 'embed/';
-        iframe.style.cssText = 'width:100%;height:500px;border:none;overflow:hidden';
-        iframe.setAttribute('scrolling', 'no');
-        iframe.setAttribute('allowtransparency', 'true');
-        iframe.setAttribute('loading', 'lazy');
-        wrapper.appendChild(iframe);
-        container.appendChild(wrapper);
+      var containers = [
+        document.getElementById('reels-container-home'),
+        document.getElementById('reels-container')
+      ].filter(Boolean);
+      if (!containers.length) return;
+      if (!items || !items.length) {
+        containers.forEach(function(c){ c.style.display = 'none'; });
+        return;
+      }
+      containers.forEach(function(container) {
+        container.innerHTML = '';
+        items.forEach(function(item) {
+          var url = (typeof item === 'string') ? item : item.permalink;
+          if (!url) return;
+          var wrapper = document.createElement('div');
+          // styling viene dalla classe .reels-grid > div (vedi CSS)
+          var iframe = document.createElement('iframe');
+          iframe.src = (url.endsWith('/') ? url : url + '/') + 'embed/';
+          iframe.style.cssText = 'width:100%;height:500px;border:none;overflow:hidden;display:block';
+          iframe.setAttribute('scrolling', 'no');
+          iframe.setAttribute('allowtransparency', 'true');
+          iframe.setAttribute('loading', 'lazy');
+          wrapper.appendChild(iframe);
+          container.appendChild(wrapper);
+        });
       });
     }
 
