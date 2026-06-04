@@ -29,9 +29,11 @@
   <meta name="twitter:description" content="Il suono della Giamaica, ovunque tu sia. Preventivo online in pochi secondi."/>
   <meta name="twitter:image" content="https://kinkypeople.it/urban-walk.png"/>
 
-  <!-- Favicons -->
-  <link rel="icon" type="image/png" href="/black_logo.png"/>
-  <link rel="apple-touch-icon" href="/black_logo.png"/>
+  <!-- Favicons (Holo logo olografico) -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/Holo_logo.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/Holo_logo.png"/>
+  <link rel="apple-touch-icon" href="/Holo_logo.png"/>
+  <link rel="shortcut icon" type="image/png" href="/Holo_logo.png"/>
 
   <!-- Preload hero image (LCP optimization) -->
   <link rel="preload" as="image" href="/urban-walk.webp" type="image/webp" fetchpriority="high"/>
@@ -2273,21 +2275,21 @@
       update(); // primo paint
     })();
 
-    /* INSTAGRAM REELS */
-    const REELS = [
-      'https://www.instagram.com/reel/DJy_gg5NhwS/',
-      'https://www.instagram.com/reel/DJl5VmztJBp/',
-      'https://www.instagram.com/reel/DImvU9CNRPB/'
-    ];
-    function loadReels() {
+    /* INSTAGRAM REELS — pull dinamico via /api/ig-reels (Vercel serverless).
+       Se le env var IG_ACCESS_TOKEN/IG_USER_ID non sono settate il serverless
+       restituisce una lista di backup. Vedi api/ig-reels.js per il setup. */
+    function renderReels(items) {
       var container = document.getElementById('reels-container');
-      if (!container || REELS.length === 0) return;
-      var shuffled = REELS.slice().sort(function(){ return Math.random() - 0.5; });
-      shuffled.forEach(function(url) {
+      if (!container) return;
+      container.innerHTML = '';
+      if (!items || !items.length) { container.style.display = 'none'; return; }
+      items.forEach(function(item) {
+        var url = (typeof item === 'string') ? item : item.permalink;
+        if (!url) return;
         var wrapper = document.createElement('div');
         wrapper.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;min-height:500px';
         var iframe = document.createElement('iframe');
-        iframe.src = url + 'embed/';
+        iframe.src = (url.endsWith('/') ? url : url + '/') + 'embed/';
         iframe.style.cssText = 'width:100%;height:500px;border:none;overflow:hidden';
         iframe.setAttribute('scrolling', 'no');
         iframe.setAttribute('allowtransparency', 'true');
@@ -2296,7 +2298,18 @@
         container.appendChild(wrapper);
       });
     }
-    loadReels();
+
+    fetch('/api/ig-reels', { headers: { 'Accept': 'application/json' } })
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(payload) { renderReels(payload && payload.items); })
+      .catch(function() {
+        // ultimo fallback se anche il serverless è giù
+        renderReels([
+          'https://www.instagram.com/reel/DJy_gg5NhwS/',
+          'https://www.instagram.com/reel/DJl5VmztJBp/',
+          'https://www.instagram.com/reel/DImvU9CNRPB/'
+        ]);
+      });
 
     /* ─── GOOGLE CALENDAR AUTO-DATES ───
      * Il calendario "info@kinkypeople.it" deve essere:
@@ -2311,11 +2324,14 @@
      * Sostituisci GOOGLE_CAL_API_KEY con la tua chiave.
      */
     (function() {
-      var CAL_ID  = 'info@kinkypeople.it';
-      var API_KEY = 'GOOGLE_CAL_API_KEY';   // <-- sostituisci qui
+      /* Calendar condiviso info@kinkypeople.it
+       * ATTENZIONE: la API key deve essere ristretta in Google Cloud Console
+       * a HTTP referrers: kinkypeople.it/*, *.kinkypeople.it/*, localhost/*
+       * altrimenti chiunque puo' usarla per quote diversi */
+      var CAL_ID  = '1g88f4smojhkgocrd9qog1dh0o@group.calendar.google.com';
+      var API_KEY = 'AIzaSyCAVluxflzZcirE0XDXbGYEwuXyVBEoyug';
 
-      // Se la chiave non è ancora configurata, usa le date hardcoded
-      if (API_KEY === 'GOOGLE_CAL_API_KEY') return;
+      if (API_KEY === 'GOOGLE_CAL_API_KEY') return; // safety fallback alle date statiche
 
       var months = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
       var now = new Date().toISOString();
