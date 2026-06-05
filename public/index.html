@@ -225,12 +225,12 @@
     .hero-bg {
       position: absolute; inset: 0; z-index: 0;
     }
-    /* Gradient overlay on hero bg — leggero, foto in evidenza */
+    /* Gradient overlay on hero bg — foto visibile ma testo leggibile */
     .hero-bg::after {
       content: ''; position: absolute; inset: 0;
       background:
-        linear-gradient(180deg, rgba(10,10,10,.35) 0%, rgba(10,10,10,.05) 30%, rgba(10,10,10,.55) 70%, rgba(10,10,10,.85) 100%),
-        radial-gradient(ellipse at 50% 65%, transparent 0%, rgba(10,10,10,.35) 80%);
+        linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,.25) 30%, rgba(10,10,10,.65) 70%, rgba(10,10,10,.9) 100%),
+        radial-gradient(ellipse at 50% 55%, rgba(10,10,10,.25) 0%, rgba(10,10,10,.55) 80%);
     }
     /* Animated grain texture */
     .hero-grain {
@@ -274,22 +274,26 @@
       padding: 2rem 1rem;
     }
     .hero-eyebrow {
-      font-size: 11px; font-weight: 600; letter-spacing: 6px;
+      font-size: 12px; font-weight: 700; letter-spacing: 6px;
       text-transform: uppercase; color: var(--gold);
       margin-bottom: 1.5rem; display: block;
+      text-shadow: 0 2px 12px rgba(0,0,0,.75);
     }
     .hero-title {
       font-family: var(--font-display);
       font-size: clamp(4rem, 14vw, 11rem);
       letter-spacing: 6px; color: var(--text);
       line-height: .9; margin-bottom: 1rem;
+      text-shadow: 0 4px 30px rgba(0,0,0,.5);
     }
     .hero-title .line-gold { color: var(--gold); display: block; }
     .hero-subtitle {
       font-family: var(--font-serif);
-      font-size: clamp(1rem, 2vw, 1.4rem);
-      font-style: italic; color: var(--text-dim);
+      font-size: clamp(1.05rem, 2.1vw, 1.45rem);
+      font-style: italic; font-weight: 600;
+      color: var(--text);                 /* prima era --text-dim → ora pieno */
       letter-spacing: 2px; margin-bottom: 3rem;
+      text-shadow: 0 2px 16px rgba(0,0,0,.65);
     }
     .hero-cta-group {
       display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
@@ -407,21 +411,44 @@
       flex: 0 0 calc((100% - 2rem) / 3);   /* 3 slide visibili con 2 gap da 1rem */
       min-width: 0;
     }
-    /* Instagram blockquote → iframe (post-processed da embed.js) */
-    .reels-carousel__track > .instagram-media,
-    .reels-carousel__track > iframe.instagram-media-rendered {
-      background: #FFF !important;
-      border: 1px solid var(--border) !important;
-      border-radius: var(--r-md) !important;
-      overflow: hidden;
-      min-height: 520px;
-      transition: border-color .25s, transform .25s;
-      max-width: 100% !important;
-      margin: 0 !important;
-      width: 100% !important;
+    /* News page: grid statica di reel (no carousel) */
+    .reels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
     }
-    .reels-carousel__track > .instagram-media:hover {
-      border-color: rgba(212,168,67,.35) !important;
+    @media (max-width: 600px) {
+      .reels-grid { grid-template-columns: 1fr; gap: 1rem; }
+    }
+
+    /* Reel card: 9:16 portrait fisso, chrome IG croppato via overflow */
+    .reel-card {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      max-height: 70vh;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+    }
+    .reel-card:hover {
+      border-color: rgba(212,168,67,.45);
+      box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      transform: translateY(-2px);
+    }
+    .reel-card__iframe {
+      position: absolute;
+      /* Offset negativi che nascondono IG header (top) e IG footer (bottom).
+         Valori scelti per cover tipico di un reel 9:16 a varie larghezze. */
+      top: -54px;
+      left: -1px;
+      width: calc(100% + 2px);
+      height: calc(100% + 230px);
+      border: 0;
+      display: block;
+      background: #000;
     }
     /* Bottoni navigazione */
     .reels-carousel__nav {
@@ -2546,27 +2573,24 @@
         items.forEach(function(item) {
           var url = (typeof item === 'string') ? item : item.permalink;
           if (!url) return;
-          // Approccio ufficiale Instagram: blockquote + embed.js
-          var bq = document.createElement('blockquote');
-          bq.className = 'instagram-media';
-          bq.setAttribute('data-instgrm-permalink', url);
-          bq.setAttribute('data-instgrm-version', '14');
-          bq.setAttribute('data-instgrm-captioned', '');
-          bq.style.cssText = 'background:#FFF;border:0;border-radius:var(--r-md);margin:0;width:100%;min-width:0;padding:0;display:block';
-          container.appendChild(bq);
+          // Iframe diretto in container 9:16 con crop CSS: niente chrome IG.
+          var wrap = document.createElement('div');
+          wrap.className = 'reel-card';
+          var iframe = document.createElement('iframe');
+          // /embed con &cr=1 → captioned=false (meno bloat sotto)
+          var permalink = url.replace(/\/?$/, '/'); // assicura trailing slash
+          iframe.src = permalink + 'embed/?cr=1&v=14&wp=540';
+          iframe.className = 'reel-card__iframe';
+          iframe.setAttribute('scrolling', 'no');
+          iframe.setAttribute('allowtransparency', 'true');
+          iframe.setAttribute('allowfullscreen', 'true');
+          iframe.setAttribute('loading', 'lazy');
+          iframe.setAttribute('frameborder', '0');
+          iframe.setAttribute('title', 'Reel @kinkypeoplejamrock');
+          wrap.appendChild(iframe);
+          container.appendChild(wrap);
         });
       });
-      // Trigger render embed.js (idempotente)
-      if (window.instgrm && window.instgrm.Embeds) {
-        window.instgrm.Embeds.process();
-      } else if (!document.getElementById('ig-embed-script')) {
-        var s = document.createElement('script');
-        s.id = 'ig-embed-script';
-        s.async = true;
-        s.src = 'https://www.instagram.com/embed.js';
-        document.body.appendChild(s);
-      }
-      // Setup carousel home (solo se il track esiste e ha elementi)
       setupReelsCarousel();
     }
 
@@ -2915,6 +2939,16 @@
     }
     .kp-ctrl--play svg { width: 20px; height: 20px; }
     .kp-ctrl--play:hover { color: #111; background: #E6B85B; transform: scale(1.04); }
+    /* Quando autoplay e' bloccato: bottone play pulsa con glow per attirare il click */
+    .kp-bar--blocked .kp-ctrl--play {
+      animation: kpPlayPulse 1.6s ease-in-out infinite;
+      box-shadow: 0 0 0 0 rgba(212,168,67,.7);
+    }
+    @keyframes kpPlayPulse {
+      0%   { box-shadow: 0 0 0 0   rgba(212,168,67,.7); transform: scale(1); }
+      70%  { box-shadow: 0 0 0 18px rgba(212,168,67,0);  transform: scale(1.08); }
+      100% { box-shadow: 0 0 0 0   rgba(212,168,67,0);  transform: scale(1); }
+    }
     .kp-vol {
       width: 80px; height: 3px;
       -webkit-appearance: none; appearance: none;
@@ -3149,51 +3183,69 @@
           vol.value = Math.round(v * 100);
         }, 55);
         showHint(false);
-      }
-
-      function tryUnmuted() { audio.muted = false; return audio.play(); }
-      function tryMuted()   {
-        audio.muted = true;
-        iVOn.style.display = 'none';
-        iVOff.style.display = '';
-        return audio.play();
+        bar.classList.remove('kp-bar--blocked');
       }
 
       function attachFirstGesturePlay(withUnmute) {
         var playOnce = function () {
           audio.play().then(function () {
             if (withUnmute) unmuteFade();
+            else {
+              showHint(false);
+              bar.classList.remove('kp-bar--blocked');
+            }
             console.log('[KP] play partita al primo gesto utente');
           }).catch(function (e) {
             console.warn('[KP] play fallita anche dopo gesto:', e);
           });
-          ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
+          ['click','keydown','touchstart','mousedown','pointerdown','scroll'].forEach(function(e){
             document.removeEventListener(e, playOnce, true);
           });
         };
-        ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
+        ['click','keydown','touchstart','mousedown','pointerdown','scroll'].forEach(function(e){
           document.addEventListener(e, playOnce, true);
         });
       }
 
-      tryUnmuted()
-        .then(function () { console.log('[KP] autoplay unmuted OK'); })
-        .catch(function () {
-          tryMuted()
-            .then(function () {
-              console.log('[KP] autoplay muted OK — attendo gesto per unmute');
-              showHint(true);
-              attachFirstGesturePlay(true);
-            })
-            .catch(function (err) {
-              // Anche muted bloccato (Brave strict, ad-block aggressivo, ecc).
-              // Lasciamo il player visibile, attendiamo il primo gesto per play.
-              console.warn('[KP] autoplay anche muted bloccato — attendo gesto per play', err);
-              audio.muted = false;          // sara' un play normale al primo click
-              showHint(true);
-              attachFirstGesturePlay(false);
-            });
-        });
+      function attemptAutoplay() {
+        // Tentativo 1: unmuted (raro)
+        audio.muted = false;
+        return audio.play()
+          .then(function () { console.log('[KP] autoplay unmuted OK'); })
+          .catch(function () {
+            // Tentativo 2: muted (di solito ok)
+            audio.muted = true;
+            iVOn.style.display = 'none';
+            iVOff.style.display = '';
+            return audio.play()
+              .then(function () {
+                console.log('[KP] autoplay muted OK — gesture attesa per unmute');
+                showHint(true);
+                bar.classList.add('kp-bar--blocked');
+                attachFirstGesturePlay(true);
+              })
+              .catch(function (err) {
+                console.warn('[KP] autoplay tutto bloccato — pulse glow play button', err);
+                audio.muted = false;
+                showHint(true);
+                bar.classList.add('kp-bar--blocked');
+                attachFirstGesturePlay(false);
+              });
+          });
+      }
+
+      // Tenta autoplay subito + ad ogni nuovo trigger possibile.
+      attemptAutoplay();
+      window.addEventListener('load', function () { if (audio.paused) attemptAutoplay(); }, { once: true });
+      audio.addEventListener('canplay', function () {
+        if (audio.paused) audio.play().then(function () {
+          showHint(false);
+          bar.classList.remove('kp-bar--blocked');
+        }).catch(function(){});
+      }, { once: true });
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && audio.paused) attemptAutoplay();
+      });
 
       bar.hidden = false;
       requestAnimationFrame(function () { bar.classList.add('kp-bar--ready'); });
