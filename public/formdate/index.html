@@ -256,6 +256,8 @@
       border-color: var(--gold);
       color: var(--gold);
     }
+    /* Variante per service (3 opzioni piu lunghe) */
+    .tag-group--3 label { min-width: 120px; font-size: 13px; letter-spacing: 1px; }
 
     .btn {
       display: block;
@@ -356,28 +358,27 @@
           <input id="f_summary" name="summary" required maxlength="120" placeholder="Es: Lido Tropical · Pescara"/>
         </div>
 
-        <div class="field-row">
-          <div>
-            <label for="f_date">Data</label>
-            <input id="f_date" name="date" type="date" required/>
-          </div>
-          <div>
-            <label for="f_time">Ora inizio</label>
-            <input id="f_time" name="time" type="time" value="21:30" required/>
-          </div>
+        <div class="field">
+          <label for="f_date">Data</label>
+          <input id="f_date" name="date" type="date" required/>
         </div>
 
         <div class="field-row">
           <div>
-            <label for="f_hours">Durata (ore) <span class="opt">default 2</span></label>
-            <input id="f_hours" name="hours" type="number" min="1" max="12" step="0.5" value="2"/>
+            <label for="f_soundcheck">Orario soundcheck <span class="opt">interno band</span></label>
+            <input id="f_soundcheck" name="soundcheck" type="time" value="18:00" required/>
           </div>
           <div>
-            <label for="f_provincia">Provincia <span class="opt">o "estero"</span></label>
-            <input id="f_provincia" name="provincia" list="provinces-list" maxlength="80"
-                   placeholder="Inizia a scrivere..." autocomplete="off"/>
-            <datalist id="provinces-list"></datalist>
+            <label for="f_show">Orario concerto <span class="opt">pubblico sul sito</span></label>
+            <input id="f_show" name="show" type="time" value="21:30" required/>
           </div>
+        </div>
+
+        <div class="field">
+          <label for="f_provincia">Provincia <span class="opt">o "estero"</span></label>
+          <input id="f_provincia" name="provincia" list="provinces-list" maxlength="80"
+                 required placeholder="Inizia a scrivere..." autocomplete="off"/>
+          <datalist id="provinces-list"></datalist>
         </div>
 
         <div class="field">
@@ -401,6 +402,18 @@
             <label for="tag_priv">PRIVATE</label>
             <input type="radio" id="tag_trib" name="tag" value="TRIBUTE"/>
             <label for="tag_trib">TRIBUTE</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Service audio / luci <span class="opt">chi porta l'impianto</span></label>
+          <div class="tag-group tag-group--3">
+            <input type="radio" id="svc_proprio" name="service" value="PROPRIO" required/>
+            <label for="svc_proprio">Service Proprio</label>
+            <input type="radio" id="svc_loco" name="service" value="IN_LOCO"/>
+            <label for="svc_loco">Service in Loco</label>
+            <input type="radio" id="svc_tbd" name="service" value="DA_CONCORDARE"/>
+            <label for="svc_tbd">Da Concordare</label>
           </div>
         </div>
 
@@ -577,9 +590,8 @@
 
       var data = new FormData(this);
       var date = data.get('date');
-      var time = data.get('time') || '21:00';
-      var startLocal = new Date(date + 'T' + time + ':00');
-      var startISO = startLocal.toISOString();
+      var showTime = data.get('show') || '21:30';
+      var soundcheckTime = data.get('soundcheck') || '18:00';
 
       // Costruisce la stringa location: "Città (SIGLA)" oppure solo "Città" se estero
       var rawCity = (data.get('city') || '').trim();
@@ -596,10 +608,12 @@
       var payload = {
         credential: currentCredential,
         summary: data.get('summary').trim(),
-        startISO: startISO,
-        hours: parseFloat(data.get('hours')) || 2,
+        date: date,                       // YYYY-MM-DD per evento all-day
+        showTime: showTime,               // HH:MM (pubblico, mostrato sul sito)
+        soundcheckTime: soundcheckTime,   // HH:MM (interno band, solo in description)
         location: locationStr,
         tag: data.get('tag'),
+        service: data.get('service'),     // PROPRIO | IN_LOCO | DA_CONCORDARE
         venueUrl: (data.get('venueUrl') || '').trim(),
         notes: (data.get('notes') || '').trim()
       };
@@ -618,8 +632,8 @@
             : '';
           showStatus('success', '✓ Evento aggiunto.' + link);
           document.getElementById('eventForm').reset();
-          document.getElementById('f_time').value = '21:30';
-          document.getElementById('f_hours').value = '2';
+          document.getElementById('f_soundcheck').value = '18:00';
+          document.getElementById('f_show').value = '21:30';
           document.getElementById('tag_live').checked = true;
           document.getElementById('cityHint').textContent = '';
         } else if (res.status === 401 || res.status === 403) {

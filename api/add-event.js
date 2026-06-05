@@ -43,6 +43,15 @@ import { google } from 'googleapis';
 const oauthClient = new OAuth2Client();
 
 const VALID_TAGS = ['LIVE', 'CLUB', 'FESTIVAL', 'PRIVATE', 'TRIBUTE'];
+const VALID_SERVICES = ['PROPRIO', 'IN_LOCO', 'DA_CONCORDARE'];
+const SERVICE_LABELS = {
+  PROPRIO: 'Service Proprio (portiamo impianto + luci)',
+  IN_LOCO: 'Service in Loco (fornito da venue/organizzatore)',
+  DA_CONCORDARE: 'Da Concordare',
+};
+
+function isValidTime(s) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(s); }
+function isValidDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s)); }
 
 function bad(res, code, message) {
   return res.status(code).json({ ok: false, error: message });
@@ -73,19 +82,24 @@ export default async function handler(req, res) {
   // Parse body (Vercel auto-parses JSON when Content-Type: application/json)
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const {
-    credential, summary, startISO, hours, location, tag, notes,
+    credential, summary, location, tag, notes,
   } = body;
-  // venueUrl e' il nome nuovo; ticketUrl resta accettato per backward compat
+  // Backward-compat: accetta sia il vecchio (startISO + hours) sia il nuovo (date + showTime + soundcheckTime + service)
+  const date = body.date || (body.startISO ? body.startISO.slice(0,10) : null);
+  const showTime = body.showTime || '21:30';
+  const soundcheckTime = body.soundcheckTime || '18:00';
+  const service = String(body.service || 'DA_CONCORDARE').toUpperCase();
   const venueUrl = body.venueUrl || body.ticketUrl || '';
 
   if (!credential || typeof credential !== 'string') return bad(res, 400, 'Missing credential');
   if (!summary || typeof summary !== 'string') return bad(res, 400, 'Missing summary');
-  if (!startISO || isNaN(Date.parse(startISO))) return bad(res, 400, 'Missing/invalid startISO');
+  if (!date || !isValidDate(date)) return bad(res, 400, 'Missing/invalid date (YYYY-MM-DD)');
+  if (!isValidTime(showTime)) return bad(res, 400, 'Invalid showTime (HH:MM)');
+  if (!isValidTime(soundcheckTime)) return bad(res, 400, 'Invalid soundcheckTime (HH:MM)');
   if (!location || typeof location !== 'string') return bad(res, 400, 'Missing location');
-  const hoursNum = Number(hours);
-  if (!Number.isFinite(hoursNum) || hoursNum <= 0 || hoursNum > 24) return bad(res, 400, 'Invalid hours');
   const tagUp = String(tag || 'LIVE').toUpperCase();
   if (!VALID_TAGS.includes(tagUp)) return bad(res, 400, 'Invalid tag');
+  if (!VALID_SERVICES.includes(service)) return bad(res, 400, 'Invalid service');
 
   // 1) Verify Google ID token
   let payload;
@@ -119,20 +133,31 @@ export default async function handler(req, res) {
   const calendar = google.calendar({ version: 'v3', auth });
 
   // 3) Build event
-  const start = new Date(startISO);
-  const end = new Date(start.getTime() + hoursNum * 3600000);
+  // ALL-DAY: start.date e end.date (end e' il giorno DOPO per single-day all-day event)
+  const startDate = date;
+  const endDateObj = new Date(date + 'T00:00:00Z');
+  endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+  const endDate = endDateObj.toISOString().slice(0, 10);
 
   // Format della description:
   //   <TAG>
-  //   URL: <venue url>        (riga marker, parsata dal sito home)
-  //   [riga vuota]
+  //   URL: <venue url>             (parsato dal sito home → venue cliccabile)
+  //   Show: 21:30                  (parsato dal sito home → orario pubblico)
+  //   Soundcheck: 18:00            (solo per la band)
+  //   Service: PROPRIO / IN_LOCO / DA_CONCORDARE
+  //
   //   <notes utente>
-  //   [riga vuota]
+  //
   //   — Aggiunto da <email> via /formdate
-  const descriptionParts = [tagUp];
-  if (venueUrl) descriptionParts.push(`URL: ${venueUrl}`);
-  if (notes) descriptionParts.push(`\n${notes}`);
-  descriptionParts.push(`\n— Aggiunto da ${payload.email} via /formdate`);
+  const descLines = [tagUp];
+  if (venueUrl) descLines.push(`URL: ${venueUrl}`);
+  descLines.push(`Show: ${showTime}`);
+  descLines.push(`Soundcheck: ${soundcheckTime}`);
+  descLines.push(`Service: ${service} — ${SERVICE_LABELS[service] || service}`);
+  if (notes) { descLines.push(''); descLines.push(notes); }
+  descLines.push('');
+  descLines.push(`— Aggiunto da ${payload.email} via /formdate`);
+  const description = descLines.join('\n').slice(0, 4000);
 
   try {
     const ev = await calendar.events.insert({
@@ -140,9 +165,9 @@ export default async function handler(req, res) {
       requestBody: {
         summary: summary.trim().slice(0, 200),
         location: location.trim().slice(0, 200),
-        description: descriptionParts.join('\n').slice(0, 4000),
-        start: { dateTime: start.toISOString(), timeZone: 'Europe/Rome' },
-        end:   { dateTime: end.toISOString(),   timeZone: 'Europe/Rome' },
+        description: description,
+        start: { date: startDate, timeZone: 'Europe/Rome' },
+        end:   { date: endDate,   timeZone: 'Europe/Rome' },
       },
     });
 

@@ -519,6 +519,11 @@
     .date-location {
       font-size: 12px; color: var(--text-muted); letter-spacing: 1px;
     }
+    .date-time {
+      color: var(--gold-dim);
+      font-weight: 600;
+      letter-spacing: .5px;
+    }
     .date-tag {
       font-size: 9px; font-weight: 600; letter-spacing: 2px;
       padding: 3px 8px; border-radius: 3px;
@@ -2349,6 +2354,11 @@
       } else {
         venueHtml = '<div class="date-venue">' + escHtml(d.venue) + '</div>';
       }
+      // Show time + location nella stessa riga (es. "21:30 · Ascea (SA)")
+      var locParts = [];
+      if (d.show) locParts.push('<span class="date-time">' + escHtml(d.show) + '</span>');
+      if (d.location) locParts.push(escHtml(d.location));
+      var locationHtml = '<div class="date-location">' + locParts.join(' · ') + '</div>';
       return ''
         + '<li class="date-item">'
         +   '<div>'
@@ -2358,7 +2368,7 @@
         +   '<div class="date-divider"></div>'
         +   '<div class="date-info">'
         +     venueHtml
-        +     '<div class="date-location">' + escHtml(d.location) + '</div>'
+        +     locationHtml
         +   '</div>'
         +   '<div class="date-tag">' + escHtml(d.tag) + '</div>'
         +   '<div class="date-arrow">→</div>'
@@ -2510,12 +2520,20 @@
         .then(function(data){
           if (!data.items || !data.items.length) return;
           var calDates = data.items.map(function(ev){
-            var d = new Date(ev.start.dateTime || ev.start.date);
+            // Per evento all-day: ev.start.date "YYYY-MM-DD" (no TZ shift)
+            // Per evento timed (legacy): ev.start.dateTime
+            var d;
+            if (ev.start.date) {
+              var p = ev.start.date.split('-');
+              d = new Date(+p[0], +p[1]-1, +p[2]);
+            } else {
+              d = new Date(ev.start.dateTime);
+            }
             var rawDesc = (ev.description || '').trim();
             var descUp = rawDesc.toUpperCase();
             var validTags = ['LIVE','CLUB','FESTIVAL','PRIVATE','TRIBUTE'];
             var tag = validTags.find(function(t){ return descUp.indexOf(t) === 0; }) || 'LIVE';
-            // Estrae URL dal marker "URL: https://..." OPPURE prima http(s)://... nella desc
+            // URL: marker "URL: https://..." OPPURE prima http(s)://... nella desc
             var url = '';
             var mMark = rawDesc.match(/^\s*URL\s*:\s*(\S+)/im);
             if (mMark) {
@@ -2524,6 +2542,15 @@
               var mUrl = rawDesc.match(/https?:\/\/[^\s<>"']+/i);
               if (mUrl) url = mUrl[0];
             }
+            // Show time: marker "Show: HH:MM" — pubblico sul sito
+            var showTime = '';
+            var mShow = rawDesc.match(/^\s*Show\s*:\s*(\d{1,2}:\d{2})/im);
+            if (mShow) showTime = mShow[1];
+            // Legacy: se evento timed, deriva orario dal dateTime stesso
+            else if (ev.start.dateTime) {
+              var dt = new Date(ev.start.dateTime);
+              showTime = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+            }
             return {
               day:      String(d.getDate()).padStart(2,'0'),
               month:    months[d.getMonth()],
@@ -2531,7 +2558,8 @@
               venue:    ev.summary || 'TBA',
               location: ev.location || 'Da definire',
               tag:      tag,
-              url:      url
+              url:      url,
+              show:     showTime
             };
           });
           var dh = document.getElementById('dates-home');
