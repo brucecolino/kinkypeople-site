@@ -390,16 +390,19 @@
       grid-template-columns: repeat(auto-fit, minmax(min(310px,100%), 1fr));
       gap: 1.5rem;
     }
-    .reels-grid > div {
-      background: var(--bg-2);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
+    /* Instagram blockquote wrapper - lo script ufficiale lo trasforma in iframe */
+    .reels-grid > .instagram-media {
+      background: #FFF !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--r-md) !important;
       overflow: hidden;
       min-height: 500px;
       transition: border-color .25s, transform .25s;
+      max-width: 100% !important;
+      margin: 0 !important;
     }
-    .reels-grid > div:hover {
-      border-color: rgba(212,168,67,.35);
+    .reels-grid > .instagram-media:hover {
+      border-color: rgba(212,168,67,.35) !important;
       transform: translateY(-2px);
     }
     @media (max-width: 600px) {
@@ -475,16 +478,33 @@
        HOME — NEXT DATES
     ═══════════════════════════════════ */
     .dates-list { list-style: none; }
-    .date-item {
+    .date-item-wrap { list-style: none; }
+    .date-item, a.date-item--link {
       display: flex; align-items: center; gap: 1.5rem;
       padding: 1.2rem 0;
       border-bottom: 1px solid var(--border);
-      transition: all .2s;
+      transition: padding .2s, border-color .2s, background .2s;
       cursor: pointer;
+      text-decoration: none;
+      color: inherit;
     }
-    .date-item:first-child { border-top: 1px solid var(--border); }
-    .date-item:hover { padding-left: 8px; border-color: rgba(212,168,67,.3); }
-    .date-item:hover .date-arrow { opacity: 1; transform: translateX(0); color: var(--gold); }
+    .date-item-wrap:first-child .date-item,
+    .date-item-wrap:first-child a.date-item--link,
+    .dates-list > .date-item:first-child { border-top: 1px solid var(--border); }
+    .date-item:hover,
+    a.date-item--link:hover {
+      padding-left: 8px;
+      border-color: rgba(212,168,67,.3);
+      background: linear-gradient(90deg, rgba(212,168,67,.04), transparent 70%);
+    }
+    .date-item:hover .date-arrow,
+    a.date-item--link:hover .date-arrow {
+      opacity: 1; transform: translateX(0); color: var(--gold);
+    }
+    a.date-item--link:hover .date-venue-ext {
+      opacity: 1; transform: translate(2px, -2px);
+    }
+    a.date-item--link:hover .date-venue { color: var(--gold); }
     .date-day {
       font-family: var(--font-display);
       font-size: 2.2rem; letter-spacing: 1px; color: var(--gold);
@@ -2345,34 +2365,35 @@
         .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
     function renderDate(d) {
-      // Se c'è url, il venue diventa link esterno
-      var venueHtml;
-      if (d.url) {
-        venueHtml = '<a href="' + escHtml(d.url) + '" target="_blank" rel="noopener noreferrer"'
-                  + ' class="date-venue date-venue--link" title="' + escHtml(d.venue) + ' →">'
-                  + escHtml(d.venue) + ' <span class="date-venue-ext">↗</span></a>';
-      } else {
-        venueHtml = '<div class="date-venue">' + escHtml(d.venue) + '</div>';
-      }
       // Show time + location nella stessa riga (es. "21:30 · Ascea (SA)")
       var locParts = [];
       if (d.show) locParts.push('<span class="date-time">' + escHtml(d.show) + '</span>');
       if (d.location) locParts.push(escHtml(d.location));
       var locationHtml = '<div class="date-location">' + locParts.join(' · ') + '</div>';
-      return ''
-        + '<li class="date-item">'
+
+      var inner = ''
         +   '<div>'
         +     '<div class="date-day">' + escHtml(d.day) + '</div>'
         +     '<div class="date-month">' + escHtml(d.month) + '</div>'
         +   '</div>'
         +   '<div class="date-divider"></div>'
         +   '<div class="date-info">'
-        +     venueHtml
+        +     '<div class="date-venue">' + escHtml(d.venue) + (d.url ? ' <span class="date-venue-ext">↗</span>' : '') + '</div>'
         +     locationHtml
         +   '</div>'
         +   '<div class="date-tag">' + escHtml(d.tag) + '</div>'
-        +   '<div class="date-arrow">→</div>'
-        + '</li>';
+        +   '<div class="date-arrow">→</div>';
+
+      // Se c'è url -> intera item cliccabile (link esterno)
+      if (d.url) {
+        return '<li class="date-item-wrap">'
+             +   '<a href="' + escHtml(d.url) + '" target="_blank" rel="noopener noreferrer"'
+             +   ' class="date-item date-item--link" title="Apri ' + escHtml(d.venue) + ' →">'
+             +     inner
+             +   '</a>'
+             + '</li>';
+      }
+      return '<li class="date-item">' + inner + '</li>';
     }
 
     // Render dates on home (first 4) and full page
@@ -2459,18 +2480,27 @@
         items.forEach(function(item) {
           var url = (typeof item === 'string') ? item : item.permalink;
           if (!url) return;
-          var wrapper = document.createElement('div');
-          // styling viene dalla classe .reels-grid > div (vedi CSS)
-          var iframe = document.createElement('iframe');
-          iframe.src = (url.endsWith('/') ? url : url + '/') + 'embed/';
-          iframe.style.cssText = 'width:100%;height:500px;border:none;overflow:hidden;display:block';
-          iframe.setAttribute('scrolling', 'no');
-          iframe.setAttribute('allowtransparency', 'true');
-          iframe.setAttribute('loading', 'lazy');
-          wrapper.appendChild(iframe);
-          container.appendChild(wrapper);
+          // Approccio ufficiale Instagram: blockquote + embed.js
+          // (anteprima + play in-page senza dover loggare per vedere)
+          var bq = document.createElement('blockquote');
+          bq.className = 'instagram-media';
+          bq.setAttribute('data-instgrm-permalink', url);
+          bq.setAttribute('data-instgrm-version', '14');
+          bq.setAttribute('data-instgrm-captioned', '');
+          bq.style.cssText = 'background:#FFF;border:0;border-radius:var(--r-md);margin:0;width:100%;min-width:280px;padding:0;display:block';
+          container.appendChild(bq);
         });
       });
+      // Render embeds: se script gia caricato, processa; altrimenti caricalo
+      if (window.instgrm && window.instgrm.Embeds) {
+        window.instgrm.Embeds.process();
+      } else if (!document.getElementById('ig-embed-script')) {
+        var s = document.createElement('script');
+        s.id = 'ig-embed-script';
+        s.async = true;
+        s.src = 'https://www.instagram.com/embed.js';
+        document.body.appendChild(s);
+      }
     }
 
     fetch('/api/ig-reels', { headers: { 'Accept': 'application/json' } })
@@ -2600,274 +2630,188 @@
   </script>
 
 
-<!-- SPOTIFY WEB PLAYBACK SDK PLAYER -->
+<!-- ═══════════════════════════════════
+     KP AUDIO PLAYER (HTML5 audio, self-hosted, no auth)
+     File MP3 in public/audio/. Aggiorna l array KP_TRACKS sotto.
+     Prova autoplay; se browser blocca, mostra pulsante "▶ MUSICA".
+     ═══════════════════════════════════ -->
+  <style>
+    .kp-audio {
+      position: fixed; bottom: 1rem; left: 1rem; z-index: 90;
+      background: rgba(17,17,17,.92);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--gold-line);
+      border-radius: 999px;
+      padding: 6px 14px 6px 6px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(212,168,67,.08);
+      font-family: var(--font-body);
+      max-width: calc(100vw - 2rem);
+      opacity: 0; transform: translateY(8px);
+      transition: opacity .4s, transform .4s;
+    }
+    .kp-audio.kp-audio--ready { opacity: 1; transform: none; }
+    .kp-audio__btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #111;
+      border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform .15s, background .15s;
+    }
+    .kp-audio__btn:hover { background: #E6B85B; transform: scale(1.05); }
+    .kp-audio__btn:active { transform: scale(.95); }
+    .kp-audio__btn svg { width: 14px; height: 14px; }
+    .kp-audio__meta {
+      display: flex; flex-direction: column;
+      min-width: 0; flex: 1;
+      font-size: 11px;
+    }
+    .kp-audio__title {
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+      max-width: 220px;
+    }
+    .kp-audio__sub {
+      color: var(--text-muted);
+      font-size: 9px;
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+    .kp-audio__skip {
+      background: none; border: none;
+      color: var(--text-dim);
+      cursor: pointer; padding: 4px;
+      flex-shrink: 0;
+      transition: color .15s;
+    }
+    .kp-audio__skip:hover { color: var(--gold); }
+    .kp-audio__skip svg { width: 14px; height: 14px; fill: currentColor; }
+    .kp-audio__eq {
+      display: inline-flex; gap: 2px; align-items: flex-end;
+      width: 14px; height: 12px; margin-right: 2px;
+      vertical-align: middle;
+    }
+    .kp-audio__eq span {
+      width: 2px; background: var(--gold-dim); border-radius: 1px;
+      transition: height .2s;
+    }
+    .kp-audio.kp-audio--playing .kp-audio__eq span {
+      animation: kpEq .55s ease-in-out infinite alternate;
+      background: var(--gold);
+    }
+    .kp-audio.kp-audio--playing .kp-audio__eq span:nth-child(1){ animation-delay: 0s;   height: 4px; }
+    .kp-audio.kp-audio--playing .kp-audio__eq span:nth-child(2){ animation-delay: .15s; height: 9px; }
+    .kp-audio.kp-audio--playing .kp-audio__eq span:nth-child(3){ animation-delay: .3s;  height: 6px; }
+    @keyframes kpEq { from { transform: scaleY(.4) } to { transform: scaleY(1.4) } }
+    @media (max-width: 600px) {
+      .kp-audio { bottom: .75rem; left: .75rem; padding: 4px 10px 4px 4px; }
+      .kp-audio__btn { width: 32px; height: 32px; }
+      .kp-audio__title { max-width: 140px; font-size: 10px; }
+    }
+  </style>
 
-  <script src="https://sdk.scdn.co/spotify-player.js"></script>
-
-  <div class="player-bar" id="playerBar">
-    <div class="player-inner">
-
-      <!-- LEFT: EQ + cover + track name -->
-      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-        <div class="player-eq" id="playerEq"><span></span><span></span><span></span></div>
-        <div id="playerCoverThumb" style="width:32px;height:32px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-          <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:var(--text-muted)"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-        </div>
-        <div class="player-track-name" id="playerTrack"><strong>KINKY PEOPLE</strong></div>
-      </div>
-
-      <!-- CENTER: controls -->
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <button class="player-ctrl" id="btnPrev" onclick="spPrev()" title="Precedente">
-          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-        </button>
-        <button class="player-ctrl player-ctrl--play" id="btnPlay" onclick="spToggle()" title="Play/Pausa">
-          <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        </button>
-        <button class="player-ctrl" id="btnNext" onclick="spNext()" title="Successivo">
-          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
-        </button>
-      </div>
-
-      <!-- RIGHT: volume + info + connect -->
-      <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px">
-        <button class="player-ctrl" id="btnVol" onclick="spMute()" title="Muto">
-          <svg id="iconVolOn" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-          <svg id="iconVolOff" viewBox="0 0 24 24" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>
-        </button>
-        <input type="range" class="player-vol-slider" id="volSlider" min="0" max="100" value="80" oninput="spSetVol(this.value)"/>
-        <!-- Info hover panel -->
-        <div class="player-info-wrapper" style="position:relative">
-          <button class="player-ctrl" id="btnInfo" title="Info brano">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-          </button>
-          <div class="player-info-panel" id="infoPanel">
-            <div class="player-info-cover" id="infoCover">
-              <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-            </div>
-            <div class="player-info-meta">
-              <div class="player-info-title" id="infoTitle">—</div>
-              <div class="player-info-row">Artista: <span id="infoArtist">—</span></div>
-              <div class="player-info-row">Album: <span id="infoAlbum">—</span></div>
-              <div class="player-info-row"><a href="https://open.spotify.com/playlist/3wVFkxZqgYqT43wqaYdsCB" target="_blank" style="color:var(--gold)">Apri su Spotify ↗</a></div>
-            </div>
-          </div>
-        </div>
-        <!-- Connect button (shown when not logged in) -->
-        <a id="btnConnect" href="#" onclick="spLogin();return false;"
-          style="display:none;font-family:var(--font-display);font-size:.75rem;letter-spacing:2px;padding:6px 14px;border-radius:4px;background:var(--gold);color:#111;white-space:nowrap;text-decoration:none;">
-          ▶ CONNETTI
-        </a>
-      </div>
-
+  <div class="kp-audio" id="kpAudio" hidden>
+    <button class="kp-audio__btn" id="kpAudioBtn" aria-label="Play/Pausa" title="Play/Pausa">
+      <svg id="kpAudioIconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="kpAudioIconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+    </button>
+    <div class="kp-audio__meta">
+      <span class="kp-audio__title" id="kpAudioTitle">
+        <span class="kp-audio__eq"><span></span><span></span><span></span></span>
+        KINKY PEOPLE
+      </span>
+      <span class="kp-audio__sub" id="kpAudioSub">REGGAE LIVE BAND</span>
     </div>
+    <button class="kp-audio__skip" id="kpAudioSkip" aria-label="Brano successivo" title="Successivo">
+      <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12h2v12h-2z"/></svg>
+    </button>
+    <audio id="kpAudioEl" preload="metadata"></audio>
   </div>
 
   <script>
-  /* ══════════════════════════════════════════════
-     SPOTIFY WEB PLAYBACK SDK
-     Client ID: 7bb528c598134e9bb8cd685738549799
-     Playlist:  3wVFkxZqgYqT43wqaYdsCB
-  ══════════════════════════════════════════════ */
-  var SP_CLIENT_ID  = '7bb528c598134e9bb8cd685738549799';
-  var SP_PLAYLIST   = 'spotify:playlist:3wVFkxZqgYqT43wqaYdsCB';
-  var SP_REDIRECT   = window.location.origin;
-  var SP_SCOPES     = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state';
+    /* ═══════════════════════════════════════════
+       KP AUDIO PLAYER
 
-  var spPlayer  = null;
-  var spDeviceId = null;
-  var spPlaying  = false;
-  var spMuted_   = false;
-  var spToken    = null;
+       Aggiungi qui i file MP3 in public/audio/ e referenziali sotto.
+       L'ordine determina la playlist (shuffled all'avvio).
+       Se l'array e vuoto, il player non viene mostrato.
+       ═══════════════════════════════════════════ */
+    var KP_TRACKS = [
+      // { src: '/audio/jamrock-intro.mp3', title: 'JAMROCK INTRO',     sub: 'Kinky People' },
+      // { src: '/audio/redemption.mp3',    title: 'REDEMPTION SONG',   sub: 'Bob Marley Tribute' },
+      // CARICA I TUOI MP3 IN public/audio/ E AGGIUNGI LE RIGHE QUI
+    ];
 
-  /* ── Token management ── */
-  function spGetToken() {
-    // Handle PKCE callback: ?code=...
-    var params = new URLSearchParams(window.location.search);
-    var code = params.get('code');
-    if (code) {
-      var verifier = localStorage.getItem('sp_verifier');
-      if (verifier) {
-        // Exchange code for token
-        var body = new URLSearchParams({
-          client_id:     SP_CLIENT_ID,
-          grant_type:    'authorization_code',
-          code:          code,
-          redirect_uri:  SP_REDIRECT,
-          code_verifier: verifier
-        });
-        fetch('https://accounts.spotify.com/api/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString()
-        })
-        .then(function(r){ return r.json(); })
-        .then(function(data){
-          if (data.access_token) {
-            spToken = data.access_token;
-            var exp = Date.now() + ((data.expires_in || 3600) * 1000);
-            localStorage.setItem('sp_token', spToken);
-            localStorage.setItem('sp_token_exp', String(exp));
-            if (data.refresh_token) localStorage.setItem('sp_refresh', data.refresh_token);
-            localStorage.removeItem('sp_verifier');
-            history.replaceState(null, '', SP_REDIRECT);
-            // Re-init SDK with new token
-            initSDK(spToken);
-          }
-        })
-        .catch(function(e){ console.error('[SP] Token exchange error:', e); });
-        return null; // async, wait for fetch
+    (function () {
+      var box   = document.getElementById('kpAudio');
+      var audio = document.getElementById('kpAudioEl');
+      var btn   = document.getElementById('kpAudioBtn');
+      var iPlay = document.getElementById('kpAudioIconPlay');
+      var iPaus = document.getElementById('kpAudioIconPause');
+      var title = document.getElementById('kpAudioTitle');
+      var sub   = document.getElementById('kpAudioSub');
+      var skip  = document.getElementById('kpAudioSkip');
+
+      if (!KP_TRACKS.length) return;
+
+      // Shuffle
+      var queue = KP_TRACKS.slice().sort(function () { return Math.random() - 0.5; });
+      var idx = 0;
+
+      function load(i) {
+        idx = ((i % queue.length) + queue.length) % queue.length;
+        var t = queue[idx];
+        audio.src = t.src;
+        title.innerHTML = '<span class="kp-audio__eq"><span></span><span></span><span></span></span>'
+                        + (t.title || 'KINKY PEOPLE');
+        sub.textContent = t.sub || 'REGGAE LIVE BAND';
       }
-    }
-    // Check stored token
-    var stored = localStorage.getItem('sp_token');
-    var exp    = parseInt(localStorage.getItem('sp_token_exp') || '0');
-    if (stored && Date.now() < exp - 60000) { spToken = stored; return stored; }
-    return null;
-  }
-
-  function spLogin() {
-    // PKCE Authorization Code flow (no backend needed)
-    function base64urlEncode(buf) {
-      return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
-        .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-    }
-    var verifier = base64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
-    localStorage.setItem('sp_verifier', verifier);
-    crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)).then(function(hash) {
-      var challenge = base64urlEncode(hash);
-      var url = 'https://accounts.spotify.com/authorize'
-        + '?client_id=' + SP_CLIENT_ID
-        + '&response_type=code'
-        + '&redirect_uri=' + encodeURIComponent(SP_REDIRECT)
-        + '&scope=' + encodeURIComponent(SP_SCOPES)
-        + '&code_challenge_method=S256'
-        + '&code_challenge=' + challenge
-        + '&show_dialog=false';
-      window.location.href = url;
-    });
-  }
-
-  /* ── UI helpers ── */
-  function spSetPlaying(playing) {
-    spPlaying = playing;
-    document.getElementById('iconPlay').style.display  = playing ? 'none' : '';
-    document.getElementById('iconPause').style.display = playing ? '' : 'none';
-    document.getElementById('playerEq').classList.toggle('active', playing);
-  }
-
-  function spUpdateTrack(state) {
-    if (!state || !state.track_window) return;
-    var t = state.track_window.current_track;
-    if (!t) return;
-    var artist = t.artists.map(function(a){ return a.name; }).join(', ');
-    document.getElementById('playerTrack').innerHTML = '<strong>' + artist + ' — ' + t.name + '</strong>';
-    document.getElementById('infoTitle').textContent  = t.name;
-    document.getElementById('infoArtist').textContent = artist;
-    document.getElementById('infoAlbum').textContent  = t.album.name;
-    if (t.album.images && t.album.images[0]) {
-      var url = t.album.images[0].url;
-      document.getElementById('playerCoverThumb').innerHTML = '<img loading="lazy" decoding="async" src="'+url+'" style="width:100%;height:100%;object-fit:cover"/>';
-      document.getElementById('infoCover').innerHTML = '<img loading="lazy" decoding="async" src="'+url+'" style="width:100%;height:100%;object-fit:cover"/>';
-    }
-  }
-
-  /* ── Player controls ── */
-  function spToggle() {
-    if (!spPlayer) { spLogin(); return; }
-    spPlayer.togglePlay();
-  }
-
-  function spNext() {
-    if (!spPlayer) return;
-    spPlayer.nextTrack();
-  }
-
-  function spPrev() {
-    if (!spPlayer) return;
-    spPlayer.previousTrack();
-  }
-
-  function spSetVol(v) {
-    if (spPlayer) spPlayer.setVolume(v / 100);
-    spMuted_ = (v == 0);
-    document.getElementById('iconVolOn').style.display  = spMuted_ ? 'none' : '';
-    document.getElementById('iconVolOff').style.display = spMuted_ ? '' : 'none';
-  }
-
-  function spMute() {
-    spMuted_ = !spMuted_;
-    var vol = spMuted_ ? 0 : 80;
-    if (spPlayer) spPlayer.setVolume(vol / 100);
-    document.getElementById('volSlider').value = vol;
-    document.getElementById('iconVolOn').style.display  = spMuted_ ? 'none' : '';
-    document.getElementById('iconVolOff').style.display = spMuted_ ? '' : 'none';
-  }
-
-  /* ── Info panel hover ── */
-  (function(){
-    function init() {
-      var w = document.querySelector('.player-info-wrapper');
-      if (!w) return;
-      w.addEventListener('mouseenter', function(){
-        document.getElementById('infoPanel').classList.add('open');
-        document.getElementById('btnInfo').style.color = 'var(--gold)';
-      });
-      w.addEventListener('mouseleave', function(){
-        document.getElementById('infoPanel').classList.remove('open');
-        document.getElementById('btnInfo').style.color = '';
-      });
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
-  })();
-
-  /* ── SDK Init ── */
-  function initSDK(token) {
-    if (spPlayer) { spPlayer.disconnect(); spPlayer = null; }
-    spPlayer = new Spotify.Player({
-      name: 'Kinky People — Official Site',
-      getOAuthToken: function(cb) { cb(token); },
-      volume: 0.8
-    });
-    spPlayer.addListener('ready', function(ref) {
-      spDeviceId = ref.device_id;
-      fetch('https://api.spotify.com/v1/me/player/play?device_id=' + spDeviceId, {
-        method: 'PUT',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context_uri: SP_PLAYLIST, offset: { position: 0 } })
-      });
-    });
-    spPlayer.addListener('player_state_changed', function(state) {
-      if (!state) return;
-      spSetPlaying(!state.paused);
-      spUpdateTrack(state);
-    });
-    spPlayer.addListener('not_ready', function(ref) { console.warn('[SP] Device offline'); });
-    spPlayer.addListener('initialization_error', function(e) { console.error('[SP] Init:', e.message); });
-    spPlayer.addListener('authentication_error', function(e) {
-      localStorage.removeItem('sp_token'); localStorage.removeItem('sp_token_exp');
-      document.getElementById('btnConnect').style.display = 'flex';
-      document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">CONNETTI SPOTIFY PER ASCOLTARE</span>';
-    });
-    spPlayer.addListener('account_error', function(e) {
-      document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">SPOTIFY PREMIUM RICHIESTO</span>';
-    });
-    spPlayer.connect();
-  }
-
-  window.onSpotifyWebPlaybackSDKReady = function() {
-    var token = spGetToken();
-    if (token) { initSDK(token); return; }
-    // Wait for async PKCE exchange
-    setTimeout(function() {
-      if (!spToken) {
-        document.getElementById('btnConnect').style.display = 'flex';
-        document.getElementById('playerTrack').innerHTML = '<span style="color:var(--text-muted);font-size:10px;letter-spacing:2px">CONNETTI SPOTIFY PER ASCOLTARE</span>';
+      function play() {
+        audio.play()
+          .then(function () {
+            box.classList.add('kp-audio--playing');
+            iPlay.style.display = 'none';
+            iPaus.style.display = '';
+          })
+          .catch(function () {
+            box.classList.remove('kp-audio--playing');
+            iPlay.style.display = '';
+            iPaus.style.display = 'none';
+          });
       }
-    }, 3000);
-  };
+      function pause() {
+        audio.pause();
+        box.classList.remove('kp-audio--playing');
+        iPlay.style.display = '';
+        iPaus.style.display = 'none';
+      }
+      function next() { load(idx + 1); play(); }
+
+      btn.addEventListener('click', function () {
+        if (audio.paused) play(); else pause();
+      });
+      skip.addEventListener('click', next);
+      audio.addEventListener('ended', next);
+
+      box.hidden = false;
+      requestAnimationFrame(function () { box.classList.add('kp-audio--ready'); });
+
+      load(0);
+      play();
+
+      // Se autoplay bloccato, primo click qualunque sul documento lancia
+      document.addEventListener('click', function tryOnce() {
+        if (audio.paused && KP_TRACKS.length) play();
+      }, { once: true });
+    })();
   </script>
 
 </body>
