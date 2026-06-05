@@ -73,8 +73,10 @@ export default async function handler(req, res) {
   // Parse body (Vercel auto-parses JSON when Content-Type: application/json)
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const {
-    credential, summary, startISO, hours, location, tag, ticketUrl, notes,
+    credential, summary, startISO, hours, location, tag, notes,
   } = body;
+  // venueUrl e' il nome nuovo; ticketUrl resta accettato per backward compat
+  const venueUrl = body.venueUrl || body.ticketUrl || '';
 
   if (!credential || typeof credential !== 'string') return bad(res, 400, 'Missing credential');
   if (!summary || typeof summary !== 'string') return bad(res, 400, 'Missing summary');
@@ -120,8 +122,15 @@ export default async function handler(req, res) {
   const start = new Date(startISO);
   const end = new Date(start.getTime() + hoursNum * 3600000);
 
+  // Format della description:
+  //   <TAG>
+  //   URL: <venue url>        (riga marker, parsata dal sito home)
+  //   [riga vuota]
+  //   <notes utente>
+  //   [riga vuota]
+  //   — Aggiunto da <email> via /formdate
   const descriptionParts = [tagUp];
-  if (ticketUrl) descriptionParts.push(`Ticket/Info: ${ticketUrl}`);
+  if (venueUrl) descriptionParts.push(`URL: ${venueUrl}`);
   if (notes) descriptionParts.push(`\n${notes}`);
   descriptionParts.push(`\n— Aggiunto da ${payload.email} via /formdate`);
 

@@ -373,9 +373,19 @@
             <input id="f_hours" name="hours" type="number" min="1" max="12" step="0.5" value="2"/>
           </div>
           <div>
-            <label for="f_location">Città / Luogo</label>
-            <input id="f_location" name="location" required maxlength="120" placeholder="Es: Pescara (PE)"/>
+            <label for="f_provincia">Provincia <span class="opt">o "estero"</span></label>
+            <input id="f_provincia" name="provincia" list="provinces-list" maxlength="80"
+                   placeholder="Inizia a scrivere..." autocomplete="off"/>
+            <datalist id="provinces-list"></datalist>
           </div>
+        </div>
+
+        <div class="field">
+          <label for="f_city">Città / Comune / Venue</label>
+          <input id="f_city" name="city" list="cities-list" required maxlength="120"
+                 placeholder="Es: Ascea, Manoppello, Salerno…" autocomplete="off"/>
+          <datalist id="cities-list"></datalist>
+          <div id="cityHint" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div>
         </div>
 
         <div class="field">
@@ -395,8 +405,8 @@
         </div>
 
         <div class="field">
-          <label for="f_ticket">Link ticket / info <span class="opt">opzionale</span></label>
-          <input id="f_ticket" name="ticketUrl" type="url" placeholder="https://..." maxlength="500"/>
+          <label for="f_venueUrl">URL del locale <span class="opt">opzionale · diventa link sul sito</span></label>
+          <input id="f_venueUrl" name="venueUrl" type="url" placeholder="https://lidotropical.it" maxlength="500"/>
         </div>
 
         <div class="field">
@@ -470,6 +480,90 @@
     });
 
     /* ───────────────────────────────────────────────
+       Province + Citta autocomplete (datalist nativo)
+       Pulla lo stesso dataset ISTAT del calcolatore (~7980 comuni).
+       ─────────────────────────────────────────────── */
+    var COMUNI = null;                 // [{n,p,lat,lon}, ...]
+    var BY_PROV = Object.create(null); // sigla -> [{n,...}]
+    var PROV_NAMES = Object.create(null); // sigla -> nome provincia (es. "Salerno")
+
+    // Nomi provincia (CSV "Nome-Sigla,Nome-Sigla,...") - stessa lista del calcolatore
+    var PROVS_CSV = "Agrigento-AG,Alessandria-AL,Ancona-AN,Aosta-AO,Ascoli Piceno-AP,L'Aquila-AQ,Arezzo-AR,Asti-AT,Avellino-AV,Bari-BA,Bergamo-BG,Biella-BI,Belluno-BL,Benevento-BN,Bologna-BO,Brindisi-BR,Brescia-BS,Barletta-BT,Bolzano-BZ,Cagliari-CA,Campobasso-CB,Caserta-CE,Chieti-CH,Caltanissetta-CL,Cuneo-CN,Como-CO,Cremona-CR,Cosenza-CS,Catania-CT,Catanzaro-CZ,Enna-EN,Forlì-Cesena-FC,Ferrara-FE,Foggia-FG,Firenze-FI,Fermo-FM,Frosinone-FR,Genova-GE,Gorizia-GO,Grosseto-GR,Imperia-IM,Isernia-IS,Crotone-KR,Lecco-LC,Lecce-LE,Livorno-LI,Lodi-LO,Latina-LT,Lucca-LU,Monza Brianza-MB,Macerata-MC,Messina-ME,Milano-MI,Mantova-MN,Modena-MO,Massa Carrara-MS,Matera-MT,Napoli-NA,Novara-NO,Nuoro-NU,Oristano-OR,Palermo-PA,Piacenza-PC,Padova-PD,Pescara-PE,Perugia-PG,Pisa-PI,Pordenone-PN,Prato-PO,Parma-PR,Pistoia-PT,Pesaro Urbino-PU,Pavia-PV,Potenza-PZ,Ravenna-RA,Reggio Calabria-RC,Reggio Emilia-RE,Ragusa-RG,Rieti-RI,Roma-RM,Rimini-RN,Rovigo-RO,Salerno-SA,Siena-SI,Sondrio-SO,La Spezia-SP,Siracusa-SR,Sassari-SS,Sud Sardegna-SU,Savona-SV,Taranto-TA,Teramo-TE,Trento-TN,Torino-TO,Trapani-TP,Terni-TR,Trieste-TS,Treviso-TV,Udine-UD,Varese-VA,Verbania-VB,Vercelli-VC,Venezia-VE,Vicenza-VI,Verona-VR,Viterbo-VT,Vibo Valentia-VV";
+
+    function buildProvinces() {
+      var dl = document.getElementById('provinces-list');
+      dl.innerHTML = '';
+      PROVS_CSV.split(',').forEach(function(p) {
+        var s = p.split('-');
+        var sigla = s[s.length-1];           // gestisce "Forlì-Cesena-FC" prendendo l'ultimo segmento
+        var name  = s.slice(0, -1).join('-');
+        PROV_NAMES[sigla] = name;
+        var opt = document.createElement('option');
+        opt.value = name + ' - ' + sigla;    // visualizzato
+        dl.appendChild(opt);
+      });
+      // Aggiunta extra per eventi fuori Italia
+      var optAbroad = document.createElement('option');
+      optAbroad.value = 'Estero / Fuori Italia';
+      dl.appendChild(optAbroad);
+    }
+
+    function fillCitiesForProvince(sigla) {
+      var dl = document.getElementById('cities-list');
+      dl.innerHTML = '';
+      var list = BY_PROV[sigla];
+      var hint = document.getElementById('cityHint');
+      if (!list || !list.length) {
+        hint.textContent = sigla
+          ? 'Provincia non riconosciuta — scrivi il nome libero della citta.'
+          : 'Suggerimento: scegli prima la provincia per vedere le citta. Puoi anche scrivere a mano.';
+        return;
+      }
+      hint.textContent = list.length + ' comuni disponibili in ' + (PROV_NAMES[sigla] || sigla)
+                       + ' — se non e in lista, puoi scrivere a mano.';
+      list.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.n;
+        dl.appendChild(opt);
+      });
+    }
+
+    function extractSiglaFromProvinciaInput(val) {
+      if (!val) return '';
+      // Match "Salerno - SA" oppure "Forlì-Cesena - FC" → "SA" / "FC"
+      var m = val.match(/-\s*([A-Z]{2})\s*$/);
+      if (m) return m[1].toUpperCase();
+      // Match diretto "SA" (2 lettere maiuscole)
+      if (/^[A-Z]{2}$/.test(val.trim())) return val.trim().toUpperCase();
+      return '';
+    }
+
+    // Carica COMUNI in background (non blocca il form)
+    fetch('/comuni-it.json')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        COMUNI = data;
+        data.forEach(function(c) {
+          (BY_PROV[c.p] = BY_PROV[c.p] || []).push(c);
+        });
+        buildProvinces();
+        // Se l'utente ha gia scritto qualcosa, prova a popolare
+        var sigla = extractSiglaFromProvinciaInput(document.getElementById('f_provincia').value);
+        if (sigla) fillCitiesForProvince(sigla);
+      })
+      .catch(function(e) {
+        console.warn('[formdate] comuni-it.json non caricato:', e);
+        // Fallback: niente datalist, l'utente scrive a mano
+        buildProvinces();
+      });
+
+    // Quando cambia la provincia, ripopola le citta
+    document.getElementById('f_provincia').addEventListener('input', function() {
+      var sigla = extractSiglaFromProvinciaInput(this.value);
+      fillCitiesForProvince(sigla);
+    });
+
+    /* ───────────────────────────────────────────────
        Form submit
        ─────────────────────────────────────────────── */
     document.getElementById('eventForm').addEventListener('submit', async function (e) {
@@ -487,14 +581,26 @@
       var startLocal = new Date(date + 'T' + time + ':00');
       var startISO = startLocal.toISOString();
 
+      // Costruisce la stringa location: "Città (SIGLA)" oppure solo "Città" se estero
+      var rawCity = (data.get('city') || '').trim();
+      var rawProv = (data.get('provincia') || '').trim();
+      var sigla = extractSiglaFromProvinciaInput(rawProv);
+      var locationStr = rawCity;
+      if (sigla) {
+        locationStr = rawCity + ' (' + sigla + ')';
+      } else if (rawProv && rawProv.toLowerCase().indexOf('estero') < 0 && rawProv.toLowerCase().indexOf('fuori') < 0) {
+        // utente ha scritto qualcosa nella provincia ma non c'e' match -> appendi
+        locationStr = rawCity + ' (' + rawProv + ')';
+      }
+
       var payload = {
         credential: currentCredential,
         summary: data.get('summary').trim(),
         startISO: startISO,
         hours: parseFloat(data.get('hours')) || 2,
-        location: data.get('location').trim(),
+        location: locationStr,
         tag: data.get('tag'),
-        ticketUrl: (data.get('ticketUrl') || '').trim(),
+        venueUrl: (data.get('venueUrl') || '').trim(),
         notes: (data.get('notes') || '').trim()
       };
 
@@ -515,6 +621,7 @@
           document.getElementById('f_time').value = '21:30';
           document.getElementById('f_hours').value = '2';
           document.getElementById('tag_live').checked = true;
+          document.getElementById('cityHint').textContent = '';
         } else if (res.status === 401 || res.status === 403) {
           showStatus('error', '⛔ Accesso negato: ' + (json.error || 'email non autorizzata.'));
         } else {

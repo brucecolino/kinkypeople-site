@@ -503,6 +503,19 @@
       font-weight: 600; font-size: 15px; color: var(--text);
       margin-bottom: 2px;
     }
+    a.date-venue--link {
+      text-decoration: none;
+      transition: color .15s;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    a.date-venue--link:hover { color: var(--gold); }
+    .date-venue-ext {
+      font-size: 11px;
+      color: var(--gold);
+      opacity: .55;
+      transition: opacity .15s, transform .15s;
+    }
+    a.date-venue--link:hover .date-venue-ext { opacity: 1; transform: translate(1px,-1px); }
     .date-location {
       font-size: 12px; color: var(--text-muted); letter-spacing: 1px;
     }
@@ -2321,22 +2334,35 @@
       { day: "11", month: "AGO", venue: "Pesce Palombo", location: "Da definire", tag: "LIVE" },
     ];
 
+    function escHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
     function renderDate(d) {
-      return `
-        <li class="date-item">
-          <div>
-            <div class="date-day">${d.day}</div>
-            <div class="date-month">${d.month}</div>
-          </div>
-          <div class="date-divider"></div>
-          <div class="date-info">
-            <div class="date-venue">${d.venue}</div>
-            <div class="date-location">${d.location}</div>
-          </div>
-          <div class="date-tag">${d.tag}</div>
-          <div class="date-arrow">→</div>
-        </li>
-      `;
+      // Se c'è url, il venue diventa link esterno
+      var venueHtml;
+      if (d.url) {
+        venueHtml = '<a href="' + escHtml(d.url) + '" target="_blank" rel="noopener noreferrer"'
+                  + ' class="date-venue date-venue--link" title="' + escHtml(d.venue) + ' →">'
+                  + escHtml(d.venue) + ' <span class="date-venue-ext">↗</span></a>';
+      } else {
+        venueHtml = '<div class="date-venue">' + escHtml(d.venue) + '</div>';
+      }
+      return ''
+        + '<li class="date-item">'
+        +   '<div>'
+        +     '<div class="date-day">' + escHtml(d.day) + '</div>'
+        +     '<div class="date-month">' + escHtml(d.month) + '</div>'
+        +   '</div>'
+        +   '<div class="date-divider"></div>'
+        +   '<div class="date-info">'
+        +     venueHtml
+        +     '<div class="date-location">' + escHtml(d.location) + '</div>'
+        +   '</div>'
+        +   '<div class="date-tag">' + escHtml(d.tag) + '</div>'
+        +   '<div class="date-arrow">→</div>'
+        + '</li>';
     }
 
     // Render dates on home (first 4) and full page
@@ -2485,16 +2511,27 @@
           if (!data.items || !data.items.length) return;
           var calDates = data.items.map(function(ev){
             var d = new Date(ev.start.dateTime || ev.start.date);
-            var desc = (ev.description || '').trim().toUpperCase();
+            var rawDesc = (ev.description || '').trim();
+            var descUp = rawDesc.toUpperCase();
             var validTags = ['LIVE','CLUB','FESTIVAL','PRIVATE','TRIBUTE'];
-            var tag = validTags.find(function(t){ return desc.indexOf(t) === 0; }) || 'LIVE';
+            var tag = validTags.find(function(t){ return descUp.indexOf(t) === 0; }) || 'LIVE';
+            // Estrae URL dal marker "URL: https://..." OPPURE prima http(s)://... nella desc
+            var url = '';
+            var mMark = rawDesc.match(/^\s*URL\s*:\s*(\S+)/im);
+            if (mMark) {
+              url = mMark[1];
+            } else {
+              var mUrl = rawDesc.match(/https?:\/\/[^\s<>"']+/i);
+              if (mUrl) url = mUrl[0];
+            }
             return {
               day:      String(d.getDate()).padStart(2,'0'),
               month:    months[d.getMonth()],
               year:     d.getFullYear(),
               venue:    ev.summary || 'TBA',
               location: ev.location || 'Da definire',
-              tag:      tag
+              tag:      tag,
+              url:      url
             };
           });
           var dh = document.getElementById('dates-home');
