@@ -421,7 +421,9 @@
       .reels-grid { grid-template-columns: 1fr; gap: 1rem; }
     }
 
-    /* Reel card: 9:16 portrait, SOLO video, chrome IG completamente cropped */
+    /* Reel card: SCALE TRANSFORM zooma sul video, chrome IG fuori dal viewport.
+       L iframe rimane "1:1" col container (no offset), e' la transform che
+       ingrandisce e centra il video. Robusto a qualsiasi aspect IG renderizzi. */
     .reel-card {
       position: relative;
       width: 100%;
@@ -439,17 +441,19 @@
     }
     .reel-card__iframe {
       position: absolute;
-      /* Crop AGGRESSIVO: iframe scalato + offset per mostrare solo il video.
-         - top -70: nasconde header IG (avatar + "Visualizza profilo")
-         - height +500: spinge tutto il footer (like/comments/links) sotto */
-      top: -70px;
-      left: -1px;
-      width: calc(100% + 2px);
-      height: calc(100% + 500px);
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
       border: 0;
       display: block;
       background: #000;
-      pointer-events: auto;
+      /* Scale 1.65x con origin al centro orizzontale e 32% dall alto verticale
+         (= centro approssimato della porzione video nell embed IG).
+         Il chrome IG (header sopra, like/commenti sotto) viene spinto fuori
+         dai bordi del container che ha overflow:hidden. Il video resta
+         centrato e occupa quasi tutto il riquadro senza distorsioni. */
+      transform: scale(1.65);
+      transform-origin: 50% 32%;
     }
     /* Badge IG in alto a destra: cliccabile (left-click apre post,
        right-click → menu nativo con "Copia link" / "Apri in nuova scheda") */
