@@ -61,10 +61,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    // media_url = URL diretto del file mp4 (per <video> HTML5)
+    // thumbnail_url = poster image
+    // permalink = URL sul profilo IG (per il badge)
     const url = `https://graph.instagram.com/v18.0/${encodeURIComponent(userId)}/media`
-      + `?fields=id,media_type,media_product_type,permalink,thumbnail_url,timestamp`
+      + `?fields=id,media_type,media_product_type,media_url,permalink,thumbnail_url,timestamp,caption`
       + `&access_token=${encodeURIComponent(token)}`
-      + `&limit=18`;
+      + `&limit=24`;
 
     const r = await fetch(url);
     if (!r.ok) {
@@ -78,10 +81,14 @@ export default async function handler(req, res) {
 
     const data = await r.json();
     const items = (data.data || [])
-      // Reels are media_product_type === 'REELS' on newer API, fallback to VIDEO
       .filter(m => m.media_product_type === 'REELS' || m.media_type === 'VIDEO')
-      .slice(0, 6)
-      .map(m => ({ permalink: m.permalink, thumbnail_url: m.thumbnail_url }));
+      .slice(0, 12)
+      .map(m => ({
+        permalink: m.permalink,
+        media_url: m.media_url,           // mp4 URL diretto
+        thumbnail_url: m.thumbnail_url,    // poster
+        caption: (m.caption || '').slice(0, 140),
+      }));
 
     return res.status(200).json({
       source: items.length ? 'instagram' : 'fallback',
