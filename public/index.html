@@ -2348,16 +2348,11 @@
        JAVASCRIPT
   ═══════════════════════════════════ -->
   <script>
-    /* ─── DATE DATA ─── */
-    const DATES = [
-      { day: "29", month: "MAG", venue: "Teramo", location: "Teramo (TE)", tag: "LIVE" },
-      { day: "14", month: "GIU", venue: "Mood Alanno", location: "Alanno (PE)", tag: "CLUB" },
-      { day: "19", month: "LUG", venue: "Mediterraneo", location: "Da definire", tag: "FESTIVAL" },
-      { day: "24", month: "LUG", venue: "Bababoom Festival", location: "Da definire", tag: "FESTIVAL" },
-      { day: "26", month: "LUG", venue: "Casale", location: "Da definire", tag: "LIVE" },
-      { day: "09", month: "AGO", venue: "Altino", location: "Altino (CH)", tag: "LIVE" },
-      { day: "11", month: "AGO", venue: "Pesce Palombo", location: "Da definire", tag: "LIVE" },
-    ];
+    /* ─── DATE DATA ───
+       NIENTE date hardcoded: la lista e' interamente alimentata dal Google
+       Calendar via fetch (vedi blocco "GOOGLE CALENDAR AUTO-DATES" sotto).
+       Se il fetch fallisce / il calendar e' vuoto, le sezioni mostrano
+       lo stato vuoto definito sotto. */
 
     function escHtml(s) {
       return String(s == null ? '' : s)
@@ -2396,9 +2391,11 @@
       return '<li class="date-item">' + inner + '</li>';
     }
 
-    // Render dates on home (first 4) and full page
-    document.getElementById('dates-home').innerHTML = DATES.slice(0,4).map(renderDate).join('');
-    document.getElementById('dates-full').innerHTML = DATES.map(renderDate).join('');
+    // Render iniziale: skeleton loading; il fetch GCal qui sotto rimpiazza
+    var LOADING_HTML = '<li class="date-item" style="opacity:.4;color:var(--text-muted);font-size:13px;letter-spacing:1px">⏳ Caricamento date da Google Calendar…</li>';
+    var EMPTY_HTML   = '<li class="date-item" style="opacity:.7;color:var(--text-muted);font-size:13px;letter-spacing:1px">Nessuna data in agenda — torna presto.</li>';
+    document.getElementById('dates-home').innerHTML = LOADING_HTML;
+    document.getElementById('dates-full').innerHTML = LOADING_HTML;
 
     /* ─── NAVIGATION ─── */
     function goTo(page) {
@@ -2538,17 +2535,46 @@
       if (API_KEY === 'GOOGLE_CAL_API_KEY') return; // safety fallback alle date statiche
 
       var months = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
-      var now = new Date().toISOString();
+
+      // timeMin = inizio di OGGI in TZ Europe/Rome (gli all-day "oggi" venivano
+      // filtrati quando timeMin era new Date().toISOString() = adesso).
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      var timeMin = today.toISOString();
+
       var url = 'https://www.googleapis.com/calendar/v3/calendars/'
               + encodeURIComponent(CAL_ID)
               + '/events?key=' + API_KEY
-              + '&timeMin=' + now
-              + '&maxResults=30&singleEvents=true&orderBy=startTime';
+              + '&timeMin=' + encodeURIComponent(timeMin)
+              + '&maxResults=50'
+              + '&singleEvents=true'
+              + '&orderBy=startTime'
+              + '&timeZone=Europe/Rome'
+              + '&_=' + Date.now();           // cache-busting param
 
-      fetch(url)
-        .then(function(r){ return r.json(); })
+      console.log('[KP cal] fetch:', url.replace(API_KEY, '<KEY>'));
+
+      function showEmpty() {
+        var dh = document.getElementById('dates-home');
+        var df = document.getElementById('dates-full');
+        if (dh) dh.innerHTML = EMPTY_HTML;
+        if (df) df.innerHTML = EMPTY_HTML;
+      }
+
+      fetch(url, { cache: 'no-store' })
+        .then(function(r){
+          if (!r.ok) {
+            return r.json().then(function(err){
+              throw new Error('GCal API ' + r.status + ' ' + JSON.stringify(err));
+            }, function(){
+              throw new Error('GCal API ' + r.status);
+            });
+          }
+          return r.json();
+        })
         .then(function(data){
-          if (!data.items || !data.items.length) return;
+          console.log('[KP cal] response:', data.items ? data.items.length + ' eventi futuri' : 'no items field');
+          if (!data.items || !data.items.length) { showEmpty(); return; }
           var calDates = data.items.map(function(ev){
             // Per evento all-day: ev.start.date "YYYY-MM-DD" (no TZ shift)
             // Per evento timed (legacy): ev.start.dateTime
@@ -2601,7 +2627,14 @@
             el.innerHTML = '<div class="gcal-dot"></div> LIVE DA GOOGLE CALENDAR';
           });
         })
-        .catch(function(e){ console.info('[KP] Calendar fetch error (usando date statiche):', e); });
+        .catch(function(e){
+          console.error('[KP cal] errore fetch:', e);
+          var dh = document.getElementById('dates-home');
+          var df = document.getElementById('dates-full');
+          var ERR = '<li class="date-item" style="opacity:.6;color:var(--red-accent);font-size:12px;letter-spacing:1px">⚠ Calendar momentaneamente non raggiungibile.</li>';
+          if (dh) dh.innerHTML = ERR;
+          if (df) df.innerHTML = ERR;
+        });
     })();
 
     /* TELEGRAM BOT CONTACT FORM
@@ -2631,124 +2664,183 @@
 
 
 <!-- ═══════════════════════════════════
-     KP AUDIO PLAYER (HTML5 audio, self-hosted, no auth)
+     KP AUDIO PLAYER (HTML5, self-hosted, bottom bar fullscreen)
      File MP3 in public/audio/. Aggiorna l array KP_TRACKS sotto.
-     Prova autoplay; se browser blocca, mostra pulsante "▶ MUSICA".
+     Autoplay: prima prova unmuted; se browser blocca, ripiega su muted
+     e fa unmute al primo click/keydown/touch dell utente.
      ═══════════════════════════════════ -->
   <style>
-    .kp-audio {
-      position: fixed; bottom: 1rem; left: 1rem; z-index: 90;
-      background: rgba(17,17,17,.92);
-      backdrop-filter: blur(14px);
-      border: 1px solid var(--gold-line);
-      border-radius: 999px;
-      padding: 6px 14px 6px 6px;
-      display: flex; align-items: center; gap: 10px;
-      box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(212,168,67,.08);
-      font-family: var(--font-body);
-      max-width: calc(100vw - 2rem);
-      opacity: 0; transform: translateY(8px);
-      transition: opacity .4s, transform .4s;
+    .kp-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(10,10,10,.97);
+      backdrop-filter: blur(24px);
+      border-top: 1px solid var(--gold-line);
+      padding: 0 1.25rem;
+      height: 56px;
+      transform: translateY(100%);
+      transition: transform .45s ease-out;
     }
-    .kp-audio.kp-audio--ready { opacity: 1; transform: none; }
-    .kp-audio__btn {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      background: var(--gold);
-      color: #111;
-      border: none;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: transform .15s, background .15s;
+    .kp-bar--ready { transform: translateY(0); }
+    .kp-bar__inner {
+      max-width: 1200px; margin: 0 auto;
+      height: 56px;
+      display: flex; align-items: center; gap: 1rem;
     }
-    .kp-audio__btn:hover { background: #E6B85B; transform: scale(1.05); }
-    .kp-audio__btn:active { transform: scale(.95); }
-    .kp-audio__btn svg { width: 14px; height: 14px; }
-    .kp-audio__meta {
-      display: flex; flex-direction: column;
+    .kp-bar__left {
+      flex: 1; min-width: 0;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .kp-bar__eq {
+      display: flex; align-items: flex-end; gap: 2px;
+      height: 18px; width: 18px; flex-shrink: 0;
+    }
+    .kp-bar__eq span {
+      display: block; width: 3px; border-radius: 1px;
+      background: var(--text-muted); height: 4px;
+      transition: background .2s;
+    }
+    .kp-bar--playing .kp-bar__eq span {
+      background: var(--gold); animation: kpEqBounce .55s ease-in-out infinite alternate;
+    }
+    .kp-bar--playing .kp-bar__eq span:nth-child(1){animation-delay:0s}
+    .kp-bar--playing .kp-bar__eq span:nth-child(2){animation-delay:.15s}
+    .kp-bar--playing .kp-bar__eq span:nth-child(3){animation-delay:.3s}
+    @keyframes kpEqBounce { 0%{height:3px} 100%{height:15px} }
+    .kp-bar__meta {
       min-width: 0; flex: 1;
-      font-size: 11px;
+      display: flex; flex-direction: column;
     }
-    .kp-audio__title {
+    .kp-bar__title {
+      font-family: var(--font-display);
       color: var(--gold);
-      font-weight: 600;
-      letter-spacing: 1.5px;
+      font-size: 13px; letter-spacing: 2px;
       text-transform: uppercase;
-      white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-      max-width: 220px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.1;
     }
-    .kp-audio__sub {
+    .kp-bar__sub {
       color: var(--text-muted);
-      font-size: 9px;
-      letter-spacing: 2px;
+      font-size: 10px; letter-spacing: 1.5px;
       margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .kp-audio__skip {
-      background: none; border: none;
-      color: var(--text-dim);
-      cursor: pointer; padding: 4px;
+    .kp-bar__center {
+      display: flex; align-items: center; gap: 6px;
       flex-shrink: 0;
-      transition: color .15s;
     }
-    .kp-audio__skip:hover { color: var(--gold); }
-    .kp-audio__skip svg { width: 14px; height: 14px; fill: currentColor; }
-    .kp-audio__eq {
-      display: inline-flex; gap: 2px; align-items: flex-end;
-      width: 14px; height: 12px; margin-right: 2px;
-      vertical-align: middle;
+    .kp-bar__right {
+      flex: 1;
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 10px;
     }
-    .kp-audio__eq span {
-      width: 2px; background: var(--gold-dim); border-radius: 1px;
-      transition: height .2s;
+    .kp-ctrl {
+      background: none; border: none; outline: none;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #888; padding: 0;
+      transition: color .2s, background .2s;
+      flex-shrink: 0;
     }
-    .kp-audio.kp-audio--playing .kp-audio__eq span {
-      animation: kpEq .55s ease-in-out infinite alternate;
+    .kp-ctrl:hover { color: var(--gold); background: rgba(212,168,67,.08); }
+    .kp-ctrl svg { width: 16px; height: 16px; fill: currentColor; }
+    .kp-ctrl--play {
+      width: 40px; height: 40px;
+      color: #111;
       background: var(--gold);
     }
-    .kp-audio.kp-audio--playing .kp-audio__eq span:nth-child(1){ animation-delay: 0s;   height: 4px; }
-    .kp-audio.kp-audio--playing .kp-audio__eq span:nth-child(2){ animation-delay: .15s; height: 9px; }
-    .kp-audio.kp-audio--playing .kp-audio__eq span:nth-child(3){ animation-delay: .3s;  height: 6px; }
-    @keyframes kpEq { from { transform: scaleY(.4) } to { transform: scaleY(1.4) } }
-    @media (max-width: 600px) {
-      .kp-audio { bottom: .75rem; left: .75rem; padding: 4px 10px 4px 4px; }
-      .kp-audio__btn { width: 32px; height: 32px; }
-      .kp-audio__title { max-width: 140px; font-size: 10px; }
+    .kp-ctrl--play svg { width: 20px; height: 20px; }
+    .kp-ctrl--play:hover { color: #111; background: #E6B85B; transform: scale(1.04); }
+    .kp-vol {
+      width: 80px; height: 3px;
+      -webkit-appearance: none; appearance: none;
+      background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .kp-vol::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 11px; height: 11px;
+      border-radius: 50%; background: var(--gold); cursor: pointer;
+    }
+    .kp-vol::-moz-range-thumb {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--gold); cursor: pointer; border: none;
+    }
+    /* Hint "tap to unmute" mentre muted */
+    .kp-bar__hint {
+      position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
+      background: var(--gold); color: #111;
+      font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+      padding: 4px 10px; border-radius: 999px;
+      white-space: nowrap;
+      animation: kpHintPulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes kpHintPulse {
+      0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+      50%      { transform: translateX(-50%) translateY(-3px); opacity: .85; }
+    }
+
+    /* Pad body so player doesn't hide content */
+    body { padding-bottom: 56px; }
+
+    @media (max-width: 700px) {
+      .kp-bar { height: 52px; padding: 0 .75rem; }
+      .kp-bar__inner { height: 52px; gap: .65rem; }
+      .kp-bar__right { gap: 4px; }
+      .kp-vol { width: 56px; }
+      .kp-bar__title { font-size: 11px; letter-spacing: 1.5px; }
+      .kp-bar__sub { font-size: 9px; }
+      .kp-ctrl { width: 30px; height: 30px; }
+      .kp-ctrl--play { width: 36px; height: 36px; }
+      body { padding-bottom: 52px; }
+    }
+    @media (max-width: 480px) {
+      .kp-bar__left { flex: 0 0 auto; }
+      .kp-bar__meta { max-width: 110px; }
+      .kp-vol { display: none; }
+      .kp-bar__right { flex: 0 0 auto; }
     }
   </style>
 
-  <div class="kp-audio" id="kpAudio" hidden>
-    <button class="kp-audio__btn" id="kpAudioBtn" aria-label="Play/Pausa" title="Play/Pausa">
-      <svg id="kpAudioIconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-      <svg id="kpAudioIconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
-    </button>
-    <div class="kp-audio__meta">
-      <span class="kp-audio__title" id="kpAudioTitle">
-        <span class="kp-audio__eq"><span></span><span></span><span></span></span>
-        KINKY PEOPLE
-      </span>
-      <span class="kp-audio__sub" id="kpAudioSub">REGGAE LIVE BAND</span>
+  <div class="kp-bar" id="kpBar" hidden>
+    <div class="kp-bar__inner" style="position:relative">
+      <div class="kp-bar__left">
+        <div class="kp-bar__eq"><span></span><span></span><span></span></div>
+        <div class="kp-bar__meta">
+          <div class="kp-bar__title" id="kpTitle">KINKY PEOPLE</div>
+          <div class="kp-bar__sub" id="kpSub">Live Reggae Band</div>
+        </div>
+      </div>
+      <div class="kp-bar__center">
+        <button class="kp-ctrl" id="kpPrev" title="Precedente" aria-label="Precedente">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button class="kp-ctrl kp-ctrl--play" id="kpPlay" title="Play/Pausa" aria-label="Play/Pausa">
+          <svg id="kpIconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="kpIconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="kp-ctrl" id="kpNext" title="Successivo" aria-label="Successivo">
+          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12h2v12h-2z"/></svg>
+        </button>
+      </div>
+      <div class="kp-bar__right">
+        <button class="kp-ctrl" id="kpMute" title="Muto" aria-label="Muto">
+          <svg id="kpIconVolOn" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          <svg id="kpIconVolOff" viewBox="0 0 24 24" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73L19.73 21 21 19.73 4.27 3z"/></svg>
+        </button>
+        <input type="range" id="kpVol" class="kp-vol" min="0" max="100" value="70" aria-label="Volume"/>
+      </div>
+      <audio id="kpAudio" preload="auto" autoplay></audio>
     </div>
-    <button class="kp-audio__skip" id="kpAudioSkip" aria-label="Brano successivo" title="Successivo">
-      <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12h2v12h-2z"/></svg>
-    </button>
-    <audio id="kpAudioEl" preload="metadata"></audio>
   </div>
 
   <script>
     /* ═══════════════════════════════════════════
        KP AUDIO PLAYER
 
-       Aggiungi qui i file MP3 in public/audio/ e referenziali sotto.
-       L'ordine determina la playlist (shuffled all'avvio).
-       Se l'array e vuoto, il player non viene mostrato.
+       Caricare MP3 in public/audio/ e referenziali in KP_TRACKS sotto.
+       priority:true  →  finisce nelle prime 3 posizioni della playlist.
        ═══════════════════════════════════════════ */
-    /* file: nome esatto del MP3 in /public/audio/ (encoded a runtime)
-       title: "Artista - Traccia" (formattato uppercase via CSS)
-       priority: true  ->  finisce sempre nei primi 3 posti (ordine random) */
     var KP_TRACKS = [
-      // ── PRIORITY (le 3 in cima sempre, in ordine random tra loro) ──
+      // ── PRIORITY (sempre nelle prime 3 posizioni, ordine random tra loro) ──
       { file: 'Protoje - Legend Legend (Official Music Video)_128k.mp3',
         title: 'Protoje - Legend Legend', priority: true },
       { file: 'Damian Jr. Gong Marley - Medication (ft. Stephen Marley) (Official Audio).mp3',
@@ -2793,24 +2885,25 @@
         title: 'Skrillex & Damian Marley - Make It Bun Dem' },
       { file: 'YG Marley - Praise Jah in the Moonlight (Official Music Video)_128k.mp3',
         title: 'YG Marley - Praise Jah in the Moonlight' },
-      // NB: i due "youtube video #..._128k.mp3" non sono inclusi perche'
-      // dal nome non si capisce artista/traccia. Se vuoi mettili tu o passami
-      // i titoli e li infilo qui.
     ];
 
     (function () {
-      var box   = document.getElementById('kpAudio');
-      var audio = document.getElementById('kpAudioEl');
-      var btn   = document.getElementById('kpAudioBtn');
-      var iPlay = document.getElementById('kpAudioIconPlay');
-      var iPaus = document.getElementById('kpAudioIconPause');
-      var title = document.getElementById('kpAudioTitle');
-      var sub   = document.getElementById('kpAudioSub');
-      var skip  = document.getElementById('kpAudioSkip');
+      var bar    = document.getElementById('kpBar');
+      var audio  = document.getElementById('kpAudio');
+      var play   = document.getElementById('kpPlay');
+      var prev   = document.getElementById('kpPrev');
+      var next   = document.getElementById('kpNext');
+      var mute   = document.getElementById('kpMute');
+      var vol    = document.getElementById('kpVol');
+      var iPlay  = document.getElementById('kpIconPlay');
+      var iPaus  = document.getElementById('kpIconPause');
+      var iVOn   = document.getElementById('kpIconVolOn');
+      var iVOff  = document.getElementById('kpIconVolOff');
+      var title  = document.getElementById('kpTitle');
+      var sub    = document.getElementById('kpSub');
 
       if (!KP_TRACKS.length) return;
 
-      // Build queue: priority shuffled in cima, resto shuffled di seguito
       function buildQueue() {
         var pri = [], rest = [];
         KP_TRACKS.forEach(function (t) { (t.priority ? pri : rest).push(t); });
@@ -2820,53 +2913,111 @@
       }
       var queue = buildQueue();
       var idx = 0;
+      var defaultVol = 0.7;
+      var hintShown = false;
 
       function load(i) {
         idx = ((i % queue.length) + queue.length) % queue.length;
         var t = queue[idx];
-        // src: encodeURI sul nome file per gestire spazi, & ecc.
         audio.src = '/audio/' + encodeURIComponent(t.file);
-        title.innerHTML = '<span class="kp-audio__eq"><span></span><span></span><span></span></span>'
-                        + (t.title || 'KINKY PEOPLE');
-        sub.textContent = t.sub || 'Kinky People · Live Reggae Band';
+        title.textContent = t.title || 'KINKY PEOPLE';
+        sub.textContent   = t.sub   || 'Live Reggae Band';
       }
-      function play() {
-        audio.play()
-          .then(function () {
-            box.classList.add('kp-audio--playing');
-            iPlay.style.display = 'none';
-            iPaus.style.display = '';
-          })
-          .catch(function () {
-            box.classList.remove('kp-audio--playing');
-            iPlay.style.display = '';
-            iPaus.style.display = 'none';
-          });
+      function setPlaying(on) {
+        bar.classList.toggle('kp-bar--playing', on);
+        iPlay.style.display = on ? 'none' : '';
+        iPaus.style.display = on ? '' : 'none';
       }
-      function pause() {
-        audio.pause();
-        box.classList.remove('kp-audio--playing');
-        iPlay.style.display = '';
-        iPaus.style.display = 'none';
+      function showHint(show) {
+        if (show && !hintShown) {
+          var hint = document.createElement('div');
+          hint.className = 'kp-bar__hint';
+          hint.id = 'kpHint';
+          hint.textContent = '🔇 TAP PER AUDIO';
+          bar.querySelector('.kp-bar__inner').appendChild(hint);
+          hintShown = true;
+        } else if (!show && hintShown) {
+          var h = document.getElementById('kpHint');
+          if (h) h.remove();
+          hintShown = false;
+        }
       }
-      function next() { load(idx + 1); play(); }
 
-      btn.addEventListener('click', function () {
-        if (audio.paused) play(); else pause();
+      play.addEventListener('click', function () {
+        if (audio.paused) audio.play(); else audio.pause();
       });
-      skip.addEventListener('click', next);
-      audio.addEventListener('ended', next);
+      next.addEventListener('click', function () { load(idx + 1); audio.play(); });
+      prev.addEventListener('click', function () { load(idx - 1); audio.play(); });
+      audio.addEventListener('ended', function () { load(idx + 1); audio.play(); });
+      audio.addEventListener('play',  function () { setPlaying(true);  });
+      audio.addEventListener('pause', function () { setPlaying(false); });
 
-      box.hidden = false;
-      requestAnimationFrame(function () { box.classList.add('kp-audio--ready'); });
+      mute.addEventListener('click', function () {
+        audio.muted = !audio.muted;
+        iVOn.style.display  = audio.muted ? 'none' : '';
+        iVOff.style.display = audio.muted ? ''     : 'none';
+        if (!audio.muted) showHint(false);
+      });
+      vol.addEventListener('input', function () {
+        audio.volume = vol.value / 100;
+        if (audio.muted && audio.volume > 0) {
+          audio.muted = false;
+          iVOn.style.display = '';
+          iVOff.style.display = 'none';
+          showHint(false);
+        }
+      });
 
+      audio.volume = defaultVol;
       load(0);
-      play();
 
-      // Se autoplay bloccato, primo click qualunque sul documento lancia
-      document.addEventListener('click', function tryOnce() {
-        if (audio.paused && KP_TRACKS.length) play();
-      }, { once: true });
+      function unmuteFade() {
+        audio.muted = false;
+        iVOn.style.display = '';
+        iVOff.style.display = 'none';
+        var v = 0;
+        var target = defaultVol;
+        var iv = setInterval(function () {
+          v += 0.06;
+          if (v >= target) { v = target; clearInterval(iv); }
+          audio.volume = v;
+          vol.value = Math.round(v * 100);
+        }, 55);
+        showHint(false);
+      }
+
+      function tryUnmuted() { audio.muted = false; return audio.play(); }
+      function tryMuted()   {
+        audio.muted = true;
+        iVOn.style.display = 'none';
+        iVOff.style.display = '';
+        return audio.play();
+      }
+
+      tryUnmuted()
+        .then(function () { console.log('[KP] autoplay unmuted OK'); })
+        .catch(function () {
+          tryMuted()
+            .then(function () {
+              console.log('[KP] autoplay muted OK - waiting first user gesture for unmute');
+              showHint(true);
+              var unmuteOnce = function () {
+                unmuteFade();
+                ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
+                  document.removeEventListener(e, unmuteOnce, true);
+                });
+              };
+              ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
+                document.addEventListener(e, unmuteOnce, true);
+              });
+            })
+            .catch(function (err) {
+              console.warn('[KP] autoplay anche muted bloccato — serve click manuale', err);
+            });
+        });
+
+      bar.hidden = false;
+      requestAnimationFrame(function () { bar.classList.add('kp-bar--ready'); });
     })();
   </script>
 
