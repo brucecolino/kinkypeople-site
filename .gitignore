@@ -12,3 +12,6 @@ assistent-desk-*.json
 *sa-key*.json
 *-iam-*.json
 gcloud-*.json
+
+# Mp3 con nomi non identificati (cambia o rinomina e poi rimuovi questa riga)
+public/audio/youtube video*

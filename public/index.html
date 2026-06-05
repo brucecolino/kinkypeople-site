@@ -2744,10 +2744,58 @@
        L'ordine determina la playlist (shuffled all'avvio).
        Se l'array e vuoto, il player non viene mostrato.
        ═══════════════════════════════════════════ */
+    /* file: nome esatto del MP3 in /public/audio/ (encoded a runtime)
+       title: "Artista - Traccia" (formattato uppercase via CSS)
+       priority: true  ->  finisce sempre nei primi 3 posti (ordine random) */
     var KP_TRACKS = [
-      // { src: '/audio/jamrock-intro.mp3', title: 'JAMROCK INTRO',     sub: 'Kinky People' },
-      // { src: '/audio/redemption.mp3',    title: 'REDEMPTION SONG',   sub: 'Bob Marley Tribute' },
-      // CARICA I TUOI MP3 IN public/audio/ E AGGIUNGI LE RIGHE QUI
+      // ── PRIORITY (le 3 in cima sempre, in ordine random tra loro) ──
+      { file: 'Protoje - Legend Legend (Official Music Video)_128k.mp3',
+        title: 'Protoje - Legend Legend', priority: true },
+      { file: 'Damian Jr. Gong Marley - Medication (ft. Stephen Marley) (Official Audio).mp3',
+        title: 'Damian Marley - Medication (ft. Stephen Marley)', priority: true },
+      { file: 'Damian Marley - Welcome To Jamrock.mp3',
+        title: 'Damian Marley - Welcome to Jamrock', priority: true },
+
+      // ── REST (ordine random dopo le priority) ──
+      { file: 'Alborosie - Kingston Town.mp3',
+        title: 'Alborosie - Kingston Town' },
+      { file: 'Ayra Starr - Rush (Official Music Video)_128k.mp3',
+        title: 'Ayra Starr - Rush' },
+      { file: 'Bob Marley & The Wailers - Get Up, Stand Up (Audio).mp3',
+        title: 'Bob Marley & The Wailers - Get Up, Stand Up' },
+      { file: 'Bob Marley and The Wailers -Kinky Reggae_128k.mp3',
+        title: 'Bob Marley & The Wailers - Kinky Reggae' },
+      { file: 'Burna Boy - City Boys [Official Music Video]_128k.mp3',
+        title: 'Burna Boy - City Boys' },
+      { file: 'Burna Boy - Last Last [Official Music Video]_128k.mp3',
+        title: 'Burna Boy - Last Last' },
+      { file: 'Chronixx   Skanking Sweet.mp3',
+        title: 'Chronixx - Skanking Sweet' },
+      { file: 'Chronixx - Ghetto Paradise [OFFICIAL AUDIO] _ Chronology.mp3',
+        title: 'Chronixx - Ghetto Paradise' },
+      { file: 'Chronixx - Here Comes Trouble.mp3',
+        title: 'Chronixx - Here Comes Trouble' },
+      { file: 'Chronixx - Likes (Official Music Video) _ Chronology OUT NOW.mp3',
+        title: 'Chronixx - Likes' },
+      { file: 'GANJA FARMER BY MARLON ASHER_128k.mp3',
+        title: 'Marlon Asher - Ganja Farmer' },
+      { file: 'Koffee - Toast.mp3',
+        title: 'Koffee - Toast' },
+      { file: 'Out Deh.mp3',
+        title: 'Popcaan - Out Deh' },
+      { file: 'Protoje - Who Knows ft. Chronixx.mp3',
+        title: 'Protoje - Who Knows (ft. Chronixx)' },
+      { file: 'SEAN PAUL - Get Busy_128k.mp3',
+        title: 'Sean Paul - Get Busy' },
+      { file: 'Samory I Ft. Lila Iké - Outside (Official Video)_128k.mp3',
+        title: 'Samory I - Outside (ft. Lila Iké)' },
+      { file: 'Skrillex & Damian  Jr. Gong  Marley - Make It Bun Dem [OFFICIAL VIDEO]_128k.mp3',
+        title: 'Skrillex & Damian Marley - Make It Bun Dem' },
+      { file: 'YG Marley - Praise Jah in the Moonlight (Official Music Video)_128k.mp3',
+        title: 'YG Marley - Praise Jah in the Moonlight' },
+      // NB: i due "youtube video #..._128k.mp3" non sono inclusi perche'
+      // dal nome non si capisce artista/traccia. Se vuoi mettili tu o passami
+      // i titoli e li infilo qui.
     ];
 
     (function () {
@@ -2762,17 +2810,25 @@
 
       if (!KP_TRACKS.length) return;
 
-      // Shuffle
-      var queue = KP_TRACKS.slice().sort(function () { return Math.random() - 0.5; });
+      // Build queue: priority shuffled in cima, resto shuffled di seguito
+      function buildQueue() {
+        var pri = [], rest = [];
+        KP_TRACKS.forEach(function (t) { (t.priority ? pri : rest).push(t); });
+        pri.sort(function () { return Math.random() - 0.5; });
+        rest.sort(function () { return Math.random() - 0.5; });
+        return pri.concat(rest);
+      }
+      var queue = buildQueue();
       var idx = 0;
 
       function load(i) {
         idx = ((i % queue.length) + queue.length) % queue.length;
         var t = queue[idx];
-        audio.src = t.src;
+        // src: encodeURI sul nome file per gestire spazi, & ecc.
+        audio.src = '/audio/' + encodeURIComponent(t.file);
         title.innerHTML = '<span class="kp-audio__eq"><span></span><span></span><span></span></span>'
                         + (t.title || 'KINKY PEOPLE');
-        sub.textContent = t.sub || 'REGGAE LIVE BAND';
+        sub.textContent = t.sub || 'Kinky People · Live Reggae Band';
       }
       function play() {
         audio.play()
