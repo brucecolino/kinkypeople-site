@@ -2787,9 +2787,16 @@
         })
         .catch(function(e){
           console.error('[KP cal] errore fetch:', e);
+          var msg = String(e || '');
+          var ERR;
+          if (msg.indexOf('404') >= 0 || msg.indexOf('notFound') >= 0) {
+            // Calendar non accessibile via API key: serve "Rendi pubblico" su GCal.
+            ERR = '<li class="date-item" style="opacity:.7;color:var(--text-muted);font-size:12px;letter-spacing:.5px;line-height:1.5;text-align:center;padding:1.5rem 0">Calendar non ancora pubblico.<br/><span style="font-size:11px">Impostazioni Google Calendar → Autorizzazioni → "Rendi disponibile pubblicamente"</span></li>';
+          } else {
+            ERR = '<li class="date-item" style="opacity:.6;color:var(--red-accent);font-size:12px;letter-spacing:1px">⚠ Calendar momentaneamente non raggiungibile.</li>';
+          }
           var dh = document.getElementById('dates-home');
           var df = document.getElementById('dates-full');
-          var ERR = '<li class="date-item" style="opacity:.6;color:var(--red-accent);font-size:12px;letter-spacing:1px">⚠ Calendar momentaneamente non raggiungibile.</li>';
           if (dh) dh.innerHTML = ERR;
           if (df) df.innerHTML = ERR;
         });
@@ -3152,25 +3159,39 @@
         return audio.play();
       }
 
+      function attachFirstGesturePlay(withUnmute) {
+        var playOnce = function () {
+          audio.play().then(function () {
+            if (withUnmute) unmuteFade();
+            console.log('[KP] play partita al primo gesto utente');
+          }).catch(function (e) {
+            console.warn('[KP] play fallita anche dopo gesto:', e);
+          });
+          ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
+            document.removeEventListener(e, playOnce, true);
+          });
+        };
+        ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
+          document.addEventListener(e, playOnce, true);
+        });
+      }
+
       tryUnmuted()
         .then(function () { console.log('[KP] autoplay unmuted OK'); })
         .catch(function () {
           tryMuted()
             .then(function () {
-              console.log('[KP] autoplay muted OK - waiting first user gesture for unmute');
+              console.log('[KP] autoplay muted OK — attendo gesto per unmute');
               showHint(true);
-              var unmuteOnce = function () {
-                unmuteFade();
-                ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
-                  document.removeEventListener(e, unmuteOnce, true);
-                });
-              };
-              ['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){
-                document.addEventListener(e, unmuteOnce, true);
-              });
+              attachFirstGesturePlay(true);
             })
             .catch(function (err) {
-              console.warn('[KP] autoplay anche muted bloccato — serve click manuale', err);
+              // Anche muted bloccato (Brave strict, ad-block aggressivo, ecc).
+              // Lasciamo il player visibile, attendiamo il primo gesto per play.
+              console.warn('[KP] autoplay anche muted bloccato — attendo gesto per play', err);
+              audio.muted = false;          // sara' un play normale al primo click
+              showHint(true);
+              attachFirstGesturePlay(false);
             });
         });
 

@@ -23,25 +23,29 @@
  * Senza setup: il sito mostra la lista di backup sotto (aggiornala a mano).
  */
 
-/* IMPORTANTE: gli URL qui sotto sono placeholder. Quando l'utente vede
- * "link rotto / login Instagram" significa che gli ID non esistono.
+/* URL reali del profilo @kinkypeoplejamrock (formato /p/ funziona per
+ * reel e post; IG embed.js gestisce entrambi). Per aggiungerne o cambiarli
+ * basta sostituire le righe.
  *
- * Per sostituirli con i reel veri:
- *   1. Vai su https://www.instagram.com/kinkypeoplejamrock/reels/
- *   2. Apri un reel, clicca i 3 puntini → "Copia link"
- *   3. Incolla l'URL qui dentro (formato https://www.instagram.com/reel/XYZ/)
- *   4. Servono ALMENO 4 reel per attivare il carousel loop su desktop (3+1).
- *
- * Alternativa: configura IG_USER_ID + IG_ACCESS_TOKEN come env vars su Vercel
- * (vedi sotto) per pull dinamico dei reel reali del profilo.
- */
+ * Alternativa long-term: configura IG_USER_ID + IG_ACCESS_TOKEN come env
+ * vars su Vercel (vedi commenti in fondo) per pull dinamico via Graph API. */
 const FALLBACK_REELS = [
-  { permalink: 'https://www.instagram.com/reel/DJy_gg5NhwS/' },
-  { permalink: 'https://www.instagram.com/reel/DJl5VmztJBp/' },
-  { permalink: 'https://www.instagram.com/reel/DImvU9CNRPB/' },
-  { permalink: 'https://www.instagram.com/reel/DXxxxxxxxxx/' }, // ← sostituire
-  { permalink: 'https://www.instagram.com/reel/DYxxxxxxxxx/' }, // ← sostituire
-  { permalink: 'https://www.instagram.com/reel/DZxxxxxxxxx/' }, // ← sostituire
+  { permalink: 'https://www.instagram.com/p/DZHwhv7tvKK/' },
+  { permalink: 'https://www.instagram.com/p/DWChJ88jRSI/' },
+  { permalink: 'https://www.instagram.com/p/DMcucWlI0tv/' },
+  { permalink: 'https://www.instagram.com/p/DKcnNd4IeCX/' },
+  { permalink: 'https://www.instagram.com/p/DHdX0i5IYYy/' },
+  { permalink: 'https://www.instagram.com/p/DF8L8luItOq/' },
+  { permalink: 'https://www.instagram.com/p/DEp8ZIkof1t/' },
+  { permalink: 'https://www.instagram.com/p/DDe9RznIWtU/' },
+  { permalink: 'https://www.instagram.com/p/C_IunSYoUUT/' },
+  { permalink: 'https://www.instagram.com/p/C994GdsIVgI/' },
+  { permalink: 'https://www.instagram.com/p/C9KbM6jIjVW/' },
+  { permalink: 'https://www.instagram.com/p/C84SQ24I5cg/' },
+  { permalink: 'https://www.instagram.com/p/C6_x-SIIUyf/' },
+  { permalink: 'https://www.instagram.com/p/C6O-DpDIrmR/' },
+  { permalink: 'https://www.instagram.com/p/C4TSDYkoEPc/' },
+  { permalink: 'https://www.instagram.com/p/C4OBVN0IRAm/' },
 ];
 
 export default async function handler(req, res) {
