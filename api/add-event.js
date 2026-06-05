@@ -56,13 +56,18 @@ export default async function handler(req, res) {
     return bad(res, 405, 'Method not allowed');
   }
 
-  // Validate env
+  // Validate env (diagnostic: dice esattamente cosa manca)
   const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const AUTHORIZED_EMAIL = process.env.AUTHORIZED_EMAIL;
   const GOOGLE_SA_KEY = process.env.GOOGLE_SA_KEY;
   const CAL_ID = process.env.CAL_ID;
-  if (!CLIENT_ID || !AUTHORIZED_EMAIL || !GOOGLE_SA_KEY || !CAL_ID) {
-    return bad(res, 500, 'Server non configurato (mancano env vars Google).');
+  const missing = [];
+  if (!CLIENT_ID) missing.push('GOOGLE_OAUTH_CLIENT_ID');
+  if (!AUTHORIZED_EMAIL) missing.push('AUTHORIZED_EMAIL');
+  if (!GOOGLE_SA_KEY) missing.push('GOOGLE_SA_KEY');
+  if (!CAL_ID) missing.push('CAL_ID');
+  if (missing.length) {
+    return bad(res, 500, 'Env vars mancanti su Vercel: ' + missing.join(', '));
   }
 
   // Parse body (Vercel auto-parses JSON when Content-Type: application/json)
