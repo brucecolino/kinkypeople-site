@@ -49,10 +49,39 @@ const FALLBACK_REELS = [
 ];
 
 export default async function handler(req, res) {
-  // Cache CDN: 1 ora con stale-while-revalidate per non hammerare IG API
+  // Cache CDN: 1 ora con stale-while-revalidate per non hammerare le API
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
+  // ── PRIORITY 1: Behold feed (semplice, niente token Meta da rinnovare) ──
+  const beholdUrl = process.env.BEHOLD_FEED_URL;
+  if (beholdUrl) {
+    try {
+      const r = await fetch(beholdUrl);
+      if (r.ok) {
+        const data = await r.json();
+        const items = (data.posts || [])
+          .filter(p => p.isReel || p.mediaType === 'VIDEO')
+          .slice(0, 12)
+          .map(p => ({
+            permalink: p.permalink,
+            media_url: p.mediaUrl,
+            thumbnail_url: p.thumbnailUrl,
+            caption: (p.prunedCaption || p.caption || '').slice(0, 140),
+          }));
+        if (items.length) {
+          return res.status(200).json({ source: 'behold', items });
+        }
+      } else {
+        const errText = await r.text().catch(() => '');
+        console.warn('[ig-reels] Behold ' + r.status + ': ' + errText.slice(0, 200));
+      }
+    } catch (e) {
+      console.warn('[ig-reels] Behold fetch error:', String(e).slice(0, 200));
+    }
+  }
+
+  // ── PRIORITY 2: Instagram Graph API direct (richiede setup Meta Developer) ──
   const token = process.env.IG_ACCESS_TOKEN;
   const userId = process.env.IG_USER_ID;
 
