@@ -421,13 +421,12 @@
       .reels-grid { grid-template-columns: 1fr; gap: 1rem; }
     }
 
-    /* Reel card: SCALE TRANSFORM zooma sul video, chrome IG fuori dal viewport.
-       L iframe rimane "1:1" col container (no offset), e' la transform che
-       ingrandisce e centra il video. Robusto a qualsiasi aspect IG renderizzi. */
+    /* Reel card: aspect 4/5 (matches IG embed video render) + offset crop.
+       No transform = click events puliti, no distorsione, video integro. */
     .reel-card {
       position: relative;
       width: 100%;
-      aspect-ratio: 9 / 16;
+      aspect-ratio: 4 / 5;             /* matches IG embed video render */
       background: #000;
       border: 1px solid var(--border);
       border-radius: var(--r-md);
@@ -441,19 +440,13 @@
     }
     .reel-card__iframe {
       position: absolute;
-      top: 0; left: 0;
+      top: -65px;                       /* nasconde IG header (avatar+nome) */
+      left: 0;
       width: 100%;
-      height: 100%;
+      height: calc(100% + 65px + 400px);/* +65 recover header, +400 buffer footer */
       border: 0;
       display: block;
       background: #000;
-      /* Scale 1.65x con origin al centro orizzontale e 32% dall alto verticale
-         (= centro approssimato della porzione video nell embed IG).
-         Il chrome IG (header sopra, like/commenti sotto) viene spinto fuori
-         dai bordi del container che ha overflow:hidden. Il video resta
-         centrato e occupa quasi tutto il riquadro senza distorsioni. */
-      transform: scale(1.65);
-      transform-origin: 50% 32%;
     }
     /* Badge IG in alto a destra: cliccabile (left-click apre post,
        right-click → menu nativo con "Copia link" / "Apri in nuova scheda") */
