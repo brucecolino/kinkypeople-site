@@ -421,12 +421,11 @@
       .reels-grid { grid-template-columns: 1fr; gap: 1rem; }
     }
 
-    /* Reel card: 9:16 portrait fisso, chrome IG croppato via overflow */
+    /* Reel card: 9:16 portrait, SOLO video, chrome IG completamente cropped */
     .reel-card {
       position: relative;
       width: 100%;
       aspect-ratio: 9 / 16;
-      max-height: 70vh;
       background: #000;
       border: 1px solid var(--border);
       border-radius: var(--r-md);
@@ -440,15 +439,40 @@
     }
     .reel-card__iframe {
       position: absolute;
-      /* Offset negativi che nascondono IG header (top) e IG footer (bottom).
-         Valori scelti per cover tipico di un reel 9:16 a varie larghezze. */
-      top: -54px;
+      /* Crop AGGRESSIVO: iframe scalato + offset per mostrare solo il video.
+         - top -70: nasconde header IG (avatar + "Visualizza profilo")
+         - height +500: spinge tutto il footer (like/comments/links) sotto */
+      top: -70px;
       left: -1px;
       width: calc(100% + 2px);
-      height: calc(100% + 230px);
+      height: calc(100% + 500px);
       border: 0;
       display: block;
       background: #000;
+      pointer-events: auto;
+    }
+    /* Badge IG in alto a destra: cliccabile (left-click apre post,
+       right-click → menu nativo con "Copia link" / "Apri in nuova scheda") */
+    .reel-card__source {
+      position: absolute;
+      top: 10px; right: 10px;
+      z-index: 3;
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.5);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 50%;
+      color: #FFF;
+      text-decoration: none;
+      transition: background .2s, color .2s, transform .2s, border-color .2s;
+    }
+    .reel-card__source svg { width: 16px; height: 16px; fill: currentColor; }
+    .reel-card__source:hover {
+      background: var(--gold);
+      color: #111;
+      border-color: var(--gold);
+      transform: scale(1.08);
     }
     /* Bottoni navigazione */
     .reels-carousel__nav {
@@ -2576,9 +2600,20 @@
           // Iframe diretto in container 9:16 con crop CSS: niente chrome IG.
           var wrap = document.createElement('div');
           wrap.className = 'reel-card';
-          var iframe = document.createElement('iframe');
-          // /embed con &cr=1 → captioned=false (meno bloat sotto)
           var permalink = url.replace(/\/?$/, '/'); // assicura trailing slash
+
+          // Badge IG cliccabile per right-click → "Copia link" / "Apri in nuova scheda"
+          var badge = document.createElement('a');
+          badge.className = 'reel-card__source';
+          badge.href = permalink;
+          badge.target = '_blank';
+          badge.rel = 'noopener noreferrer';
+          badge.title = 'Apri su Instagram (right-click per copia link)';
+          badge.setAttribute('aria-label', 'Apri su Instagram');
+          badge.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.325 6.162 6.162 0 0 0 0-12.325zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>';
+          wrap.appendChild(badge);
+
+          var iframe = document.createElement('iframe');
           iframe.src = permalink + 'embed/?cr=1&v=14&wp=540';
           iframe.className = 'reel-card__iframe';
           iframe.setAttribute('scrolling', 'no');
@@ -2962,21 +2997,6 @@
       width: 11px; height: 11px; border-radius: 50%;
       background: var(--gold); cursor: pointer; border: none;
     }
-    /* Hint "tap to unmute" mentre muted */
-    .kp-bar__hint {
-      position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
-      background: var(--gold); color: #111;
-      font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
-      padding: 4px 10px; border-radius: 999px;
-      white-space: nowrap;
-      animation: kpHintPulse 2s ease-in-out infinite;
-      pointer-events: none;
-    }
-    @keyframes kpHintPulse {
-      0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
-      50%      { transform: translateX(-50%) translateY(-3px); opacity: .85; }
-    }
-
     /* Pad body so player doesn't hide content */
     body { padding-bottom: 56px; }
 
@@ -3113,8 +3133,6 @@
       var queue = buildQueue();
       var idx = 0;
       var defaultVol = 0.7;
-      var hintShown = false;
-
       function load(i) {
         idx = ((i % queue.length) + queue.length) % queue.length;
         var t = queue[idx];
@@ -3127,20 +3145,7 @@
         iPlay.style.display = on ? 'none' : '';
         iPaus.style.display = on ? '' : 'none';
       }
-      function showHint(show) {
-        if (show && !hintShown) {
-          var hint = document.createElement('div');
-          hint.className = 'kp-bar__hint';
-          hint.id = 'kpHint';
-          hint.textContent = '🔇 TAP PER AUDIO';
-          bar.querySelector('.kp-bar__inner').appendChild(hint);
-          hintShown = true;
-        } else if (!show && hintShown) {
-          var h = document.getElementById('kpHint');
-          if (h) h.remove();
-          hintShown = false;
-        }
-      }
+      // showHint rimosso: la pulse animation del play button basta come CTA
 
       play.addEventListener('click', function () {
         if (audio.paused) audio.play(); else audio.pause();
@@ -3155,7 +3160,6 @@
         audio.muted = !audio.muted;
         iVOn.style.display  = audio.muted ? 'none' : '';
         iVOff.style.display = audio.muted ? ''     : 'none';
-        if (!audio.muted) showHint(false);
       });
       vol.addEventListener('input', function () {
         audio.volume = vol.value / 100;
@@ -3163,7 +3167,6 @@
           audio.muted = false;
           iVOn.style.display = '';
           iVOff.style.display = 'none';
-          showHint(false);
         }
       });
 
@@ -3182,7 +3185,6 @@
           audio.volume = v;
           vol.value = Math.round(v * 100);
         }, 55);
-        showHint(false);
         bar.classList.remove('kp-bar--blocked');
       }
 
@@ -3191,7 +3193,6 @@
           audio.play().then(function () {
             if (withUnmute) unmuteFade();
             else {
-              showHint(false);
               bar.classList.remove('kp-bar--blocked');
             }
             console.log('[KP] play partita al primo gesto utente');
@@ -3220,14 +3221,12 @@
             return audio.play()
               .then(function () {
                 console.log('[KP] autoplay muted OK — gesture attesa per unmute');
-                showHint(true);
                 bar.classList.add('kp-bar--blocked');
                 attachFirstGesturePlay(true);
               })
               .catch(function (err) {
                 console.warn('[KP] autoplay tutto bloccato — pulse glow play button', err);
                 audio.muted = false;
-                showHint(true);
                 bar.classList.add('kp-bar--blocked');
                 attachFirstGesturePlay(false);
               });
@@ -3239,7 +3238,6 @@
       window.addEventListener('load', function () { if (audio.paused) attemptAutoplay(); }, { once: true });
       audio.addEventListener('canplay', function () {
         if (audio.paused) audio.play().then(function () {
-          showHint(false);
           bar.classList.remove('kp-bar--blocked');
         }).catch(function(){});
       }, { once: true });
