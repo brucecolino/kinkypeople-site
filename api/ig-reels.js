@@ -23,10 +23,25 @@
  * Senza setup: il sito mostra la lista di backup sotto (aggiornala a mano).
  */
 
+/* IMPORTANTE: gli URL qui sotto sono placeholder. Quando l'utente vede
+ * "link rotto / login Instagram" significa che gli ID non esistono.
+ *
+ * Per sostituirli con i reel veri:
+ *   1. Vai su https://www.instagram.com/kinkypeoplejamrock/reels/
+ *   2. Apri un reel, clicca i 3 puntini → "Copia link"
+ *   3. Incolla l'URL qui dentro (formato https://www.instagram.com/reel/XYZ/)
+ *   4. Servono ALMENO 4 reel per attivare il carousel loop su desktop (3+1).
+ *
+ * Alternativa: configura IG_USER_ID + IG_ACCESS_TOKEN come env vars su Vercel
+ * (vedi sotto) per pull dinamico dei reel reali del profilo.
+ */
 const FALLBACK_REELS = [
   { permalink: 'https://www.instagram.com/reel/DJy_gg5NhwS/' },
   { permalink: 'https://www.instagram.com/reel/DJl5VmztJBp/' },
   { permalink: 'https://www.instagram.com/reel/DImvU9CNRPB/' },
+  { permalink: 'https://www.instagram.com/reel/DXxxxxxxxxx/' }, // ← sostituire
+  { permalink: 'https://www.instagram.com/reel/DYxxxxxxxxx/' }, // ← sostituire
+  { permalink: 'https://www.instagram.com/reel/DZxxxxxxxxx/' }, // ← sostituire
 ];
 
 export default async function handler(req, res) {

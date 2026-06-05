@@ -385,30 +385,89 @@
        HOME — REELS GRID
     ═══════════════════════════════════ */
     .home-reels-section { padding: 4rem 0 2rem; background: var(--bg); }
-    .reels-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(310px,100%), 1fr));
-      gap: 1.5rem;
+
+    /* CAROUSEL: viewport con overflow nascosto, track flex che trasla.
+       3 slide visibili su desktop, 1 su mobile. Loop infinito via JS. */
+    .reels-carousel {
+      position: relative;
+      padding: 0 56px;             /* spazio per i bottoni di nav ai lati */
     }
-    /* Instagram blockquote wrapper - lo script ufficiale lo trasforma in iframe */
-    .reels-grid > .instagram-media {
+    .reels-carousel__viewport {
+      overflow: hidden;
+      margin: 0 -.5rem;            /* compensa il gap interno per allineare ai bordi */
+    }
+    .reels-carousel__track {
+      display: flex;
+      gap: 1rem;
+      will-change: transform;
+      transition: transform .45s cubic-bezier(.22,.61,.36,1);
+      padding: .25rem .5rem;       /* margine per non tagliare i border */
+    }
+    .reels-carousel__track > * {
+      flex: 0 0 calc((100% - 2rem) / 3);   /* 3 slide visibili con 2 gap da 1rem */
+      min-width: 0;
+    }
+    /* Instagram blockquote → iframe (post-processed da embed.js) */
+    .reels-carousel__track > .instagram-media,
+    .reels-carousel__track > iframe.instagram-media-rendered {
       background: #FFF !important;
       border: 1px solid var(--border) !important;
       border-radius: var(--r-md) !important;
       overflow: hidden;
-      min-height: 500px;
+      min-height: 520px;
       transition: border-color .25s, transform .25s;
       max-width: 100% !important;
       margin: 0 !important;
+      width: 100% !important;
     }
-    .reels-grid > .instagram-media:hover {
+    .reels-carousel__track > .instagram-media:hover {
       border-color: rgba(212,168,67,.35) !important;
-      transform: translateY(-2px);
+    }
+    /* Bottoni navigazione */
+    .reels-carousel__nav {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      z-index: 5;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      border: 1px solid var(--gold-line);
+      color: var(--gold);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .2s, transform .2s, color .2s, border-color .2s;
+      padding: 0;
+      box-shadow: 0 4px 18px rgba(0,0,0,.4);
+    }
+    .reels-carousel__nav svg { width: 22px; height: 22px; }
+    .reels-carousel__nav:hover {
+      background: var(--gold);
+      color: #111;
+      border-color: var(--gold);
+      transform: translateY(-50%) scale(1.06);
+    }
+    .reels-carousel__nav:active { transform: translateY(-50%) scale(.95); }
+    .reels-carousel__nav--prev { left: 0; }
+    .reels-carousel__nav--next { right: 0; }
+
+    /* Stati vuoto / loading */
+    .reels-carousel--empty {
+      padding: 0;
+      min-height: 200px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); font-size: 13px; letter-spacing: 1px;
+    }
+    .reels-carousel--empty .reels-carousel__nav { display: none; }
+
+    @media (max-width: 900px) {
+      .reels-carousel__track > * { flex: 0 0 calc((100% - 1rem) / 2); }  /* 2 visibili */
     }
     @media (max-width: 600px) {
       .home-reels-section { padding: 2.5rem 0 1rem; }
-      .reels-grid { grid-template-columns: 1fr; gap: 1rem; }
-      .reels-grid > div { min-height: 460px; }
+      .reels-carousel { padding: 0 44px; }
+      .reels-carousel__track > * { flex: 0 0 100%; }                     /* 1 visibile */
+      .reels-carousel__nav { width: 36px; height: 36px; }
+      .reels-carousel__nav svg { width: 18px; height: 18px; }
     }
     /* Mobile booking buttons symmetry */
     @media (max-width: 700px) {
@@ -1626,7 +1685,17 @@
             <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" rel="noopener" style="color:var(--gold)">@kinkypeoplejamrock</a>
           </p>
         </div>
-        <div id="reels-container-home" class="reels-grid reveal"></div>
+        <div class="reels-carousel reveal" id="reels-carousel-home">
+          <button class="reels-carousel__nav reels-carousel__nav--prev" aria-label="Reel precedenti" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </button>
+          <div class="reels-carousel__viewport">
+            <div class="reels-carousel__track" id="reels-container-home"></div>
+          </div>
+          <button class="reels-carousel__nav reels-carousel__nav--next" aria-label="Reel successivi" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59 10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+          </button>
+        </div>
         <div style="text-align:center;margin-top:2.5rem" class="reveal">
           <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" rel="noopener" class="btn-ghost" style="display:inline-flex;align-items:center;gap:8px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
@@ -2478,17 +2547,16 @@
           var url = (typeof item === 'string') ? item : item.permalink;
           if (!url) return;
           // Approccio ufficiale Instagram: blockquote + embed.js
-          // (anteprima + play in-page senza dover loggare per vedere)
           var bq = document.createElement('blockquote');
           bq.className = 'instagram-media';
           bq.setAttribute('data-instgrm-permalink', url);
           bq.setAttribute('data-instgrm-version', '14');
           bq.setAttribute('data-instgrm-captioned', '');
-          bq.style.cssText = 'background:#FFF;border:0;border-radius:var(--r-md);margin:0;width:100%;min-width:280px;padding:0;display:block';
+          bq.style.cssText = 'background:#FFF;border:0;border-radius:var(--r-md);margin:0;width:100%;min-width:0;padding:0;display:block';
           container.appendChild(bq);
         });
       });
-      // Render embeds: se script gia caricato, processa; altrimenti caricalo
+      // Trigger render embed.js (idempotente)
       if (window.instgrm && window.instgrm.Embeds) {
         window.instgrm.Embeds.process();
       } else if (!document.getElementById('ig-embed-script')) {
@@ -2498,6 +2566,96 @@
         s.src = 'https://www.instagram.com/embed.js';
         document.body.appendChild(s);
       }
+      // Setup carousel home (solo se il track esiste e ha elementi)
+      setupReelsCarousel();
+    }
+
+    /* ─── Carousel reel: 3 visibili, infinite loop via clone, prev/next ─── */
+    function setupReelsCarousel() {
+      var carousel = document.getElementById('reels-carousel-home');
+      var track    = document.getElementById('reels-container-home');
+      if (!carousel || !track) return;
+      var items = Array.prototype.slice.call(track.children);
+      if (items.length === 0) {
+        carousel.classList.add('reels-carousel--empty');
+        track.innerHTML = '<div style="padding:2rem;color:var(--text-muted);font-size:13px">Nessun reel disponibile al momento.</div>';
+        return;
+      }
+      // Se troppo pochi reel per scrollare, nasconde i nav
+      function visibleCount() {
+        if (window.innerWidth <= 600) return 1;
+        if (window.innerWidth <= 900) return 2;
+        return 3;
+      }
+      var vis = visibleCount();
+      var prev = carousel.querySelector('.reels-carousel__nav--prev');
+      var next = carousel.querySelector('.reels-carousel__nav--next');
+      if (items.length <= vis) {
+        if (prev) prev.style.display = 'none';
+        if (next) next.style.display = 'none';
+        return;
+      }
+      // CLONE LOOP: appendo i primi `vis` in coda e prependo gli ultimi `vis` in testa.
+      // L'indice "logico" parte da `vis` (il primo originale dopo i cloni di testa).
+      // Quando idx esce dai bounds [vis, vis+items.length-1], faccio snap senza transizione.
+      var headClones = items.slice(-vis).map(function (n) { return n.cloneNode(true); });
+      var tailClones = items.slice(0, vis).map(function (n) { return n.cloneNode(true); });
+      headClones.forEach(function (n) { track.insertBefore(n, track.firstChild); });
+      tailClones.forEach(function (n) { track.appendChild(n); });
+
+      var totalOriginal = items.length;
+      var idx = vis;          // posizione corrente del primo slide visibile
+      var stepPct = 100 / vis; // ogni slide occupa 100/vis percento di larghezza track
+      var animating = false;
+
+      function applyTransform(withTransition) {
+        track.style.transition = withTransition ? '' : 'none';
+        track.style.transform = 'translateX(' + (-idx * stepPct) + '%)';
+        if (!withTransition) {
+          // force reflow per ri-attivare transition al prossimo tick
+          track.offsetWidth;
+          track.style.transition = '';
+        }
+      }
+
+      function move(delta) {
+        if (animating) return;
+        animating = true;
+        idx += delta;
+        applyTransform(true);
+      }
+      track.addEventListener('transitionend', function () {
+        animating = false;
+        if (idx >= totalOriginal + vis) {
+          // siamo nei clone-tail → snap a inizio originale
+          idx = vis + (idx - (totalOriginal + vis));
+          applyTransform(false);
+        } else if (idx < vis) {
+          // siamo nei clone-head → snap a fine originale
+          idx = totalOriginal + idx;
+          applyTransform(false);
+        }
+      });
+
+      applyTransform(false);   // posizione iniziale (idx = vis)
+
+      next.addEventListener('click', function () { move(1); });
+      prev.addEventListener('click', function () { move(-1); });
+
+      // Auto-scroll ogni 7s (mette in pausa quando l'utente hover)
+      var auto = setInterval(function () { move(1); }, 7000);
+      carousel.addEventListener('mouseenter', function () { clearInterval(auto); });
+      carousel.addEventListener('mouseleave', function () {
+        clearInterval(auto);
+        auto = setInterval(function () { move(1); }, 7000);
+      });
+
+      // Su resize, ricalcola se la quantita' di slide visibili cambia
+      var lastVis = vis;
+      window.addEventListener('resize', function () {
+        var nv = visibleCount();
+        if (nv !== lastVis) location.reload(); // ricomputo da zero (semplice)
+      });
     }
 
     fetch('/api/ig-reels', { headers: { 'Accept': 'application/json' } })
