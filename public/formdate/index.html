@@ -699,19 +699,33 @@
       }
     );
 
+    // Extra: località / frazioni non ISTAT ma comuni per venue della band.
+    // Aggiungere qui altre voci con formato { n: "Nome", p: "SIGLA", lat, lon }.
+    var COMUNI_EXTRA = [
+      { n: "Val Vomano", p: "TE", lat: 42.5647, lon: 13.7686 },
+    ];
+
     // Carica COMUNI in background
     fetch('/comuni-it.json')
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        COMUNI = data;
-        data.forEach(function(c) {
+        COMUNI = data.concat(COMUNI_EXTRA);
+        COMUNI.forEach(function(c) {
           (BY_PROV[c.p] = BY_PROV[c.p] || []).push(c);
+        });
+        // Ordina le liste per provincia (case-insensitive) per suggerimenti puliti
+        Object.keys(BY_PROV).forEach(function(k) {
+          BY_PROV[k].sort(function(a,b){ return a.n.localeCompare(b.n, 'it'); });
         });
         buildProvinces();
         updateCityHint();
       })
       .catch(function(e) {
         console.warn('[formdate] comuni-it.json non caricato:', e);
+        // Fallback: usiamo almeno le extra
+        COMUNI_EXTRA.forEach(function(c) {
+          (BY_PROV[c.p] = BY_PROV[c.p] || []).push(c);
+        });
         buildProvinces();
         cityHint.textContent = 'Dataset comuni non caricato — scrivi tutto a mano.';
       });
