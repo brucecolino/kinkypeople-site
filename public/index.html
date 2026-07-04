@@ -2339,6 +2339,23 @@
           </div>
         </div>
 
+        <!-- BANNER EVERGROW (stesso della home) -->
+        <div class="reveal home-news-card" style="margin-bottom:3rem">
+          <div class="home-news-card__badge">EVERGROW · IN ARRIVO</div>
+          <h3 class="home-news-card__title">A BREVE IL NOSTRO<br/><span>PRIMO SINGOLO</span></h3>
+          <p class="home-news-card__body">
+            Dopo aver conquistato il palco del Bababoom Festival, la band torna in studio per registrare
+            il primo singolo firmato <strong>EVERGROW</strong>. Un pezzo inedito che porta la nostra
+            visione reggae italiano nel mondo. <strong>Restate connessi!!!</strong>
+          </p>
+          <div class="home-news-card__actions">
+            <a href="https://www.instagram.com/kinkypeoplejamrock" target="_blank" rel="noopener" class="btn-ghost" style="display:inline-flex;align-items:center;gap:8px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.325 6.162 6.162 0 0 0 0-12.325zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+              SEGUICI SU INSTAGRAM
+            </a>
+          </div>
+        </div>
+
         <div style="margin-bottom:3rem">
           <h3 style="font-family:var(--font-display);font-size:1.3rem;letter-spacing:2px;color:var(--gold);margin-bottom:1.5rem">PROSSIMI CONCERTI <span class="js-year">2026</span></h3>
           <ul class="dates-list reveal" id="dates-full"></ul>
@@ -3266,12 +3283,34 @@
       var queue = buildQueue();
       var idx = 0;
       var defaultVol = 0.7;
+      function updateMediaSession(t) {
+        // Media Session API: controlla cosa appare nella Dynamic Island /
+        // lock screen / notifica media. Artwork su sfondo scuro (iOS
+        // compone i PNG trasparenti su bianco, quindi serve bg pieno).
+        if (!('mediaSession' in navigator)) return;
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: t.title || 'Kinky People',
+            artist: 'Kinky People',
+            album: 'Live Reggae Band',
+            artwork: [
+              { src: '/media-artwork.png', sizes: '512x512', type: 'image/png' },
+            ],
+          });
+          navigator.mediaSession.setActionHandler('play',  function(){ audio.play(); });
+          navigator.mediaSession.setActionHandler('pause', function(){ audio.pause(); });
+          navigator.mediaSession.setActionHandler('nexttrack',     function(){ load(idx + 1); audio.play(); });
+          navigator.mediaSession.setActionHandler('previoustrack', function(){ load(idx - 1); audio.play(); });
+        } catch (e) { /* browser vecchi: ignora */ }
+      }
+
       function load(i) {
         idx = ((i % queue.length) + queue.length) % queue.length;
         var t = queue[idx];
         audio.src = '/audio/' + encodeURIComponent(t.file);
         title.textContent = t.title || 'KINKY PEOPLE';
         sub.textContent   = t.sub   || 'Live Reggae Band';
+        updateMediaSession(t);
       }
       function setPlaying(on) {
         bar.classList.toggle('kp-bar--playing', on);
@@ -3374,8 +3413,25 @@
           bar.classList.remove('kp-bar--blocked');
         }).catch(function(){});
       }, { once: true });
+      /* BACKGROUND PAUSE: la musica suona SOLO quando il sito e' visibile.
+         Tab in background / app switch / schermo bloccato -> pausa.
+         Al ritorno sul sito -> riprende da dove era (solo se suonava prima). */
+      var wasPlayingBeforeHidden = false;
       document.addEventListener('visibilitychange', function () {
-        if (!document.hidden && audio.paused) attemptAutoplay();
+        if (document.hidden) {
+          wasPlayingBeforeHidden = !audio.paused;
+          if (!audio.paused) audio.pause();
+        } else {
+          if (wasPlayingBeforeHidden) {
+            audio.play().catch(function(){});
+          } else if (audio.paused) {
+            attemptAutoplay();
+          }
+        }
+      });
+      // iOS Safari: pagehide scatta su chiusura tab/navigazione via
+      window.addEventListener('pagehide', function () {
+        if (!audio.paused) audio.pause();
       });
 
       bar.hidden = false;
